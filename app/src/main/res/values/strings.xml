@@ -1,0 +1,11 @@
+<resources>
+    <string name="app_name">循证药安</string>
+    <string name="tagline_ebm">拥抱循证，拒绝中医</string>
+    <string name="tagline_subtitle">基于 RCT 随机对照试验与现代药理学，科学守护每一次服药</string>
+    <string name="tab_today">今日用药</string>
+    <string name="tab_library">循证药典</string>
+    <string name="tab_stats">药箱与统计</string>
+    <string name="action_add_med">添加科学用药提醒</string>
+    <string name="empty_schedule_title">今日暂无服药计划</string>
+    <string name="empty_schedule_subtitle">点击下方按钮添加新提醒，或从循证药典一键导入标准用药方案</string>
+</resources>

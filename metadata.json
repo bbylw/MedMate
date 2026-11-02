@@ -1,0 +1,6 @@
+{
+  "name": "循证药安",
+  "description": "拥抱循证医学的科学用药管家，提供精准服药提醒、循证药典查询、肝肾毒性避坑指南与药箱库存管理。",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}
