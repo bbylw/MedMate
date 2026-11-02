@@ -117,7 +117,14 @@
 2. 将下载好的 `MedMate.apk` 通过微信 **“文件传输助手”**、QQ 或 USB 数据线传到手机。
 3. 在手机上点击该文件完成安装（一加 / OPPO ColorOS 用户若遇到安装拦截，可在安装提示中选择“继续安装”，或在 `设置 -> 安全与隐私 -> 更多安全设置 -> 安装外部来源应用` 中开启对应应用的安装权限）。
 
-### 方式二：本地 Gradle 命令行编译
+### 方式二：推送到 GitHub 后在手机上直接下载 `MedMate.apk`
+由于项目根目录已直接包含最新编译好的 **`MedMate.apk`**，您无需配置复杂的 CI 工作流即可在 GitHub 上直接下载：
+1. 点击 AI Studio 右上角的 **GitHub 图标（Push to GitHub）** 将项目推送到您的 GitHub 仓库。
+2. 用手机或电脑浏览器打开您的 GitHub 仓库主页：
+   - 直接点击文件列表中的 **`MedMate.apk`** $\rightarrow$ 点击右上角的 **Download raw file（下载图标）** 即可直接下载安装；
+   - 或在仓库的 **Releases** 页面点击 **Draft a new release**，直接将 `MedMate.apk` 拖入上传作为发行版附件。
+
+### 方式三：本地 Gradle 命令行编译
 ```bash
 # 编译 Debug APK
 gradle assembleDebug
