@@ -105,7 +105,8 @@ fun IOSSegmentedControl(
 fun EvidenceHeroBanner(
     medications: List<Medication>,
     onShowEbmManifesto: () -> Unit,
-    onMarkAllTaken: () -> Unit
+    onMarkAllTaken: () -> Unit,
+    onResetToday: () -> Unit = {}
 ) {
     val totalCount = medications.size
     val takenCount = medications.count { it.isTakenToday }
@@ -332,7 +333,7 @@ fun EvidenceHeroBanner(
                 }
             }
 
-            if (totalCount > 0 && takenCount < totalCount) {
+            if (totalCount > 0) {
                 Spacer(modifier = Modifier.height(12.dp))
                 HorizontalDivider(
                     thickness = 0.5.dp,
@@ -344,22 +345,61 @@ fun EvidenceHeroBanner(
                     horizontalArrangement = Arrangement.SpaceBetween,
                     verticalAlignment = Alignment.CenterVertically
                 ) {
-                    Text(
-                        text = "今日尚有 ${totalCount - takenCount} 剂药物待记录",
-                        style = MaterialTheme.typography.bodySmall,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant
-                    )
-                    Text(
-                        text = "全部标记为已服用",
-                        style = MaterialTheme.typography.labelLarge,
-                        color = IOSHealthCoral,
-                        fontWeight = FontWeight.SemiBold,
-                        modifier = Modifier
-                            .clip(RoundedCornerShape(6.dp))
-                            .clickable { onMarkAllTaken() }
-                            .padding(horizontal = 6.dp, vertical = 2.dp)
-                            .testTag("quick_take_all_button")
-                    )
+                    Row(
+                        verticalAlignment = Alignment.CenterVertically,
+                        modifier = Modifier.weight(1f, fill = false)
+                    ) {
+                        Icon(
+                            imageVector = Icons.Rounded.Autorenew,
+                            contentDescription = null,
+                            tint = IOSMintGreen,
+                            modifier = Modifier.size(14.dp)
+                        )
+                        Spacer(modifier = Modifier.width(4.dp))
+                        Text(
+                            text = if (takenCount < totalCount) {
+                                "每日00:00自动刷新 · 待服 ${totalCount - takenCount} 剂"
+                            } else {
+                                "每日00:00自动刷新 · 明日自动归零"
+                            },
+                            style = MaterialTheme.typography.bodySmall,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                            maxLines = 1,
+                            overflow = TextOverflow.Ellipsis
+                        )
+                    }
+
+                    Row(
+                        horizontalArrangement = Arrangement.spacedBy(8.dp),
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        if (takenCount > 0) {
+                            Text(
+                                text = "重置今日",
+                                style = MaterialTheme.typography.labelMedium,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                fontWeight = FontWeight.SemiBold,
+                                modifier = Modifier
+                                    .clip(RoundedCornerShape(6.dp))
+                                    .clickable { onResetToday() }
+                                    .padding(horizontal = 6.dp, vertical = 2.dp)
+                                    .testTag("hero_reset_today_button")
+                            )
+                        }
+                        if (takenCount < totalCount) {
+                            Text(
+                                text = "全部标记为已服用",
+                                style = MaterialTheme.typography.labelLarge,
+                                color = IOSHealthCoral,
+                                fontWeight = FontWeight.SemiBold,
+                                modifier = Modifier
+                                    .clip(RoundedCornerShape(6.dp))
+                                    .clickable { onMarkAllTaken() }
+                                    .padding(horizontal = 6.dp, vertical = 2.dp)
+                                    .testTag("quick_take_all_button")
+                            )
+                        }
+                    }
                 }
             }
         }
@@ -455,7 +495,12 @@ fun IOSMedicationRow(
                     )
                     Spacer(modifier = Modifier.width(6.dp))
                     Text(
-                        text = medication.time,
+                        text = if (medication.isTakenToday) {
+                            val timeSuffix = medication.lastTakenTime.takeIf { it.isNotBlank() }?.let { " $it" } ?: ""
+                            "今日${timeSuffix}已服"
+                        } else {
+                            medication.time
+                        },
                         style = MaterialTheme.typography.labelSmall.copy(fontFamily = JetBrainsMonoFontFamily),
                         color = if (medication.isTakenToday) IOSMintGreen else IOSHealthCoral,
                         fontWeight = FontWeight.Bold

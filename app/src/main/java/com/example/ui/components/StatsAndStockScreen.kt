@@ -29,11 +29,14 @@ import com.example.ui.theme.IOSMintGreen
 import com.example.ui.theme.IOSPlumPurple
 import com.example.ui.theme.IOSWarmOrange
 import com.example.ui.theme.JetBrainsMonoFontFamily
+import java.time.DayOfWeek
+import java.time.LocalDate
 import kotlin.math.min
 
 @Composable
 fun StatsAndStockScreen(
     medications: List<Medication>,
+    currentDateIso: String = LocalDate.now().toString(),
     onRestock: (Medication, Int) -> Unit,
     onDeleteMedication: (Medication) -> Unit = {},
     onResetDaily: () -> Unit,
@@ -60,7 +63,7 @@ fun StatsAndStockScreen(
             ) {
                 Column {
                     Text(
-                        text = "健康摘要与药箱",
+                        text = "健康摘要与药箱 · $currentDateIso",
                         style = MaterialTheme.typography.labelMedium,
                         color = MaterialTheme.colorScheme.onSurfaceVariant,
                         fontWeight = FontWeight.SemiBold
@@ -127,7 +130,7 @@ fun StatsAndStockScreen(
 
         // Apple Health Style 7-Day Adherence Chart Card
         item {
-            WeeklyAdherenceIOSCard(todayRate = todayRate)
+            WeeklyAdherenceIOSCard(todayRate = todayRate, currentDateIso = currentDateIso)
         }
 
         // iOS Inset Grouped Inventory Section
@@ -236,8 +239,26 @@ private fun IOSHighlightCard(
 }
 
 @Composable
-private fun WeeklyAdherenceIOSCard(todayRate: Int) {
-    val days = listOf("一", "二", "三", "四", "五", "六", "今日")
+private fun WeeklyAdherenceIOSCard(
+    todayRate: Int,
+    currentDateIso: String
+) {
+    val parsedDate = runCatching { LocalDate.parse(currentDateIso) }.getOrElse { LocalDate.now() }
+    val days = (6 downTo 0).map { offset ->
+        if (offset == 0) {
+            "今日"
+        } else {
+            when (parsedDate.minusDays(offset.toLong()).dayOfWeek) {
+                DayOfWeek.MONDAY -> "一"
+                DayOfWeek.TUESDAY -> "二"
+                DayOfWeek.WEDNESDAY -> "三"
+                DayOfWeek.THURSDAY -> "四"
+                DayOfWeek.FRIDAY -> "五"
+                DayOfWeek.SATURDAY -> "六"
+                DayOfWeek.SUNDAY -> "日"
+            }
+        }
+    }
     val rates = listOf(100, 100, 75, 100, 100, 100, todayRate)
 
     Surface(

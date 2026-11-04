@@ -12,24 +12,82 @@ import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
+import java.time.LocalDate
+import java.time.LocalTime
+import java.time.format.DateTimeFormatter
 import kotlin.math.max
 
 class MedicationViewModel(private val repository: MedicationRepository) : ViewModel() {
 
-    val medications: StateFlow<List<Medication>> = repository.allMedications
-        .stateIn(
-            scope = viewModelScope,
-            started = SharingStarted.WhileSubscribed(5000),
-            initialValue = emptyList()
-        )
+    private val _currentDateIso = MutableStateFlow(LocalDate.now().toString())
+    val currentDateIso: StateFlow<String> = _currentDateIso.asStateFlow()
+
+    val medications: StateFlow<List<Medication>> = combine(
+        repository.allMedications,
+        _currentDateIso
+    ) { list, todayIso ->
+        list.map { med ->
+            if (med.isTakenToday && med.lastTakenDate != todayIso) {
+                med.copy(isTakenToday = false, lastTakenTime = "")
+            } else {
+                med
+            }
+        }
+    }.stateIn(
+        scope = viewModelScope,
+        started = SharingStarted.WhileSubscribed(5000),
+        initialValue = emptyList()
+    )
 
     private val _selectedPeriod = MutableStateFlow("全部")
     val selectedPeriod: StateFlow<String> = _selectedPeriod.asStateFlow()
 
     fun selectPeriod(period: String) {
         _selectedPeriod.value = period
+    }
+
+    /**
+     * Automatically synchronizes daily medication check-in status whenever the app starts,
+     * resumes from background, receives a system date/time broadcast, or crosses 00:00 midnight.
+     */
+    fun syncDailyRefresh(
+        todayIso: String = LocalDate.now().toString(),
+        lastSyncedDate: String?,
+        onRefreshed: (todayIso: String, refreshedCount: Int) -> Unit = { _, _ -> }
+    ) {
+        if (_currentDateIso.value != todayIso) {
+            _currentDateIso.value = todayIso
+        }
+        viewModelScope.launch {
+            val allMeds = repository.getAllOnce()
+            var refreshedCount = 0
+            val isNewDayRollover = !lastSyncedDate.isNullOrBlank() && lastSyncedDate != todayIso
+
+            allMeds.forEach { med ->
+                val isStaleTaken = med.isTakenToday && med.lastTakenDate != todayIso
+                val missedYesterday = isNewDayRollover && med.lastTakenDate != lastSyncedDate && med.lastTakenDate != todayIso
+
+                if (isStaleTaken || missedYesterday) {
+                    if (isStaleTaken) refreshedCount++
+                    val updatedStreak = if (missedYesterday && !isStaleTaken) {
+                        0
+                    } else {
+                        med.streakDays
+                    }
+                    repository.update(
+                        med.copy(
+                            isTakenToday = if (med.lastTakenDate == todayIso) med.isTakenToday else false,
+                            lastTakenTime = if (med.lastTakenDate == todayIso) med.lastTakenTime else "",
+                            streakDays = updatedStreak
+                        )
+                    )
+                }
+            }
+            onRefreshed(todayIso, refreshedCount)
+        }
     }
 
     fun seedDefaultIfNeeded(alreadySeeded: Boolean, onMarkSeeded: () -> Unit) {
@@ -55,7 +113,12 @@ class MedicationViewModel(private val repository: MedicationRepository) : ViewMo
     }
 
     fun toggleTaken(medication: Medication) = viewModelScope.launch {
-        val nextTaken = !medication.isTakenToday
+        val todayIso = LocalDate.now().toString()
+        val nowTime = LocalTime.now().format(DateTimeFormatter.ofPattern("HH:mm"))
+        _currentDateIso.value = todayIso
+
+        val currentlyTakenToday = medication.isTakenToday && medication.lastTakenDate == todayIso
+        val nextTaken = !currentlyTakenToday
         val updatedStock = if (nextTaken) {
             max(0, medication.stockCount - 1)
         } else {
@@ -64,11 +127,13 @@ class MedicationViewModel(private val repository: MedicationRepository) : ViewMo
         val updatedStreak = if (nextTaken) {
             medication.streakDays + 1
         } else {
-            max(1, medication.streakDays - 1)
+            max(0, medication.streakDays - 1)
         }
         repository.update(
             medication.copy(
                 isTakenToday = nextTaken,
+                lastTakenDate = if (nextTaken) todayIso else "",
+                lastTakenTime = if (nextTaken) nowTime else "",
                 stockCount = updatedStock,
                 streakDays = updatedStreak
             )
@@ -76,6 +141,10 @@ class MedicationViewModel(private val repository: MedicationRepository) : ViewMo
     }
 
     fun markPeriodAllTaken(period: String) = viewModelScope.launch {
+        val todayIso = LocalDate.now().toString()
+        val nowTime = LocalTime.now().format(DateTimeFormatter.ofPattern("HH:mm"))
+        _currentDateIso.value = todayIso
+
         val targets = medications.value.filter {
             (period == "全部" || it.period == period) && !it.isTakenToday
         }
@@ -83,6 +152,8 @@ class MedicationViewModel(private val repository: MedicationRepository) : ViewMo
             repository.update(
                 med.copy(
                     isTakenToday = true,
+                    lastTakenDate = todayIso,
+                    lastTakenTime = nowTime,
                     stockCount = max(0, med.stockCount - 1),
                     streakDays = med.streakDays + 1
                 )
@@ -97,7 +168,23 @@ class MedicationViewModel(private val repository: MedicationRepository) : ViewMo
     }
 
     fun resetDailyStatus() = viewModelScope.launch {
-        repository.resetDailyStatus()
+        val todayIso = LocalDate.now().toString()
+        _currentDateIso.value = todayIso
+        val allMeds = repository.getAllOnce()
+        allMeds.forEach { med ->
+            if (med.isTakenToday) {
+                val restoreTodayStock = med.lastTakenDate == todayIso
+                repository.update(
+                    med.copy(
+                        isTakenToday = false,
+                        lastTakenDate = "",
+                        lastTakenTime = "",
+                        stockCount = if (restoreTodayStock) med.stockCount + 1 else med.stockCount,
+                        streakDays = if (restoreTodayStock) max(0, med.streakDays - 1) else med.streakDays
+                    )
+                )
+            }
+        }
     }
 
     fun addFromCatalog(
@@ -132,6 +219,8 @@ class MedicationViewModel(private val repository: MedicationRepository) : ViewMo
             evidenceLevel = drug.evidenceLevel,
             clinicalNote = "${drug.mechanism}\n【安全警示】${drug.safetyNote}",
             isTakenToday = false,
+            lastTakenDate = "",
+            lastTakenTime = "",
             stockCount = 28,
             streakDays = 1,
             color = drug.colorHex.toInt()

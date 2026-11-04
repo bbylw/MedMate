@@ -32,9 +32,15 @@ interface MedicationDao {
     @Query("DELETE FROM medications")
     suspend fun deleteAll()
 
-    @Query("UPDATE medications SET isTakenToday = 0")
+    @Query("SELECT * FROM medications ORDER BY time ASC")
+    suspend fun getAllMedicationsOnce(): List<Medication>
+
+    @Query("UPDATE medications SET isTakenToday = 0, lastTakenDate = '', lastTakenTime = ''")
     suspend fun resetDailyStatus()
 
-    @Query("UPDATE medications SET isTakenToday = 1 WHERE period = :period")
-    suspend fun markPeriodTaken(period: String)
+    @Query("UPDATE medications SET isTakenToday = 0, lastTakenTime = '' WHERE isTakenToday = 1 AND lastTakenDate != :todayIso")
+    suspend fun refreshStaleDailyStatus(todayIso: String): Int
+
+    @Query("UPDATE medications SET isTakenToday = 1, lastTakenDate = :todayIso, lastTakenTime = :nowTime WHERE period = :period")
+    suspend fun markPeriodTaken(period: String, todayIso: String, nowTime: String)
 }

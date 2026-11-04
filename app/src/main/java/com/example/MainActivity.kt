@@ -1,6 +1,9 @@
 package com.example
 
+import android.content.BroadcastReceiver
 import android.content.Context
+import android.content.Intent
+import android.content.IntentFilter
 import android.os.Bundle
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.BackHandler
@@ -32,6 +35,10 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.core.content.ContextCompat
+import androidx.lifecycle.Lifecycle
+import androidx.lifecycle.LifecycleEventObserver
+import androidx.lifecycle.compose.LocalLifecycleOwner
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.example.data.AppDatabase
@@ -51,6 +58,7 @@ import com.example.ui.theme.CrimsonDanger
 import com.example.ui.theme.IOSHealthCoral
 import com.example.ui.theme.IOSMintGreen
 import com.example.ui.theme.MedMateTheme
+import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 import java.time.LocalDate
 import java.time.format.DateTimeFormatter
@@ -89,8 +97,11 @@ class MainActivity : ComponentActivity() {
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun MedMateApp(viewModel: MedicationViewModel) {
+    val context = LocalContext.current
+    val lifecycleOwner = LocalLifecycleOwner.current
     val medications by viewModel.medications.collectAsStateWithLifecycle()
     val selectedPeriod by viewModel.selectedPeriod.collectAsStateWithLifecycle()
+    val currentDateIso by viewModel.currentDateIso.collectAsStateWithLifecycle()
 
     var currentTab by remember { mutableIntStateOf(0) }
     var showAddEditSheet by remember { mutableStateOf(false) }
@@ -100,6 +111,72 @@ fun MedMateApp(viewModel: MedicationViewModel) {
 
     val snackbarHostState = remember { SnackbarHostState() }
     val coroutineScope = rememberCoroutineScope()
+
+    val triggerDailySync = remember(context, viewModel) {
+        {
+            val prefs = context.getSharedPreferences("medmate_prefs", Context.MODE_PRIVATE)
+            val todayIso = LocalDate.now().toString()
+            val lastSynced = prefs.getString("last_daily_refresh_date", null)
+            viewModel.syncDailyRefresh(
+                todayIso = todayIso,
+                lastSyncedDate = lastSynced,
+                onRefreshed = { syncedDate, refreshedCount ->
+                    prefs.edit().putString("last_daily_refresh_date", syncedDate).apply()
+                    if (refreshedCount > 0) {
+                        coroutineScope.launch {
+                            snackbarHostState.currentSnackbarData?.dismiss()
+                            snackbarHostState.showSnackbar("已自动刷新今日用药状态（${refreshedCount}项昨日记录已归零）")
+                        }
+                    }
+                }
+            )
+        }
+    }
+
+    // 1. Trigger daily sync on launch and every 15 seconds to catch 00:00 midnight rollover while open
+    LaunchedEffect(Unit) {
+        triggerDailySync()
+        while (true) {
+            delay(15_000L)
+            triggerDailySync()
+        }
+    }
+
+    // 2. Trigger daily sync whenever the app returns to foreground (ON_RESUME)
+    DisposableEffect(lifecycleOwner) {
+        val observer = LifecycleEventObserver { _, event ->
+            if (event == Lifecycle.Event.ON_RESUME) {
+                triggerDailySync()
+            }
+        }
+        lifecycleOwner.lifecycle.addObserver(observer)
+        onDispose {
+            lifecycleOwner.lifecycle.removeObserver(observer)
+        }
+    }
+
+    // 3. Trigger daily sync on system date / time / timezone broadcasts
+    DisposableEffect(context) {
+        val receiver = object : BroadcastReceiver() {
+            override fun onReceive(ctx: Context?, intent: Intent?) {
+                triggerDailySync()
+            }
+        }
+        val filter = IntentFilter().apply {
+            addAction(Intent.ACTION_DATE_CHANGED)
+            addAction(Intent.ACTION_TIME_CHANGED)
+            addAction(Intent.ACTION_TIMEZONE_CHANGED)
+        }
+        ContextCompat.registerReceiver(
+            context,
+            receiver,
+            filter,
+            ContextCompat.RECEIVER_NOT_EXPORTED
+        )
+        onDispose {
+            runCatching { context.unregisterReceiver(receiver) }
+        }
+    }
 
     val addedDrugNames = remember(medications) {
         medications.map { it.name }.toSet()
@@ -150,6 +227,7 @@ fun MedMateApp(viewModel: MedicationViewModel) {
                 when (tab) {
                     0 -> TodayRegimenScreen(
                         medications = medications,
+                        currentDateIso = currentDateIso,
                         selectedPeriod = selectedPeriod,
                         onSelectPeriod = { viewModel.selectPeriod(it) },
                         onAddClick = {
@@ -173,7 +251,14 @@ fun MedMateApp(viewModel: MedicationViewModel) {
                         onMarkAllTaken = {
                             viewModel.markPeriodAllTaken(selectedPeriod)
                             coroutineScope.launch {
-                                snackbarHostState.showSnackbar("已全部标记为已服用")
+                                snackbarHostState.showSnackbar("已全部标记为今日已服用")
+                            }
+                        },
+                        onResetToday = {
+                            viewModel.resetDailyStatus()
+                            coroutineScope.launch {
+                                snackbarHostState.currentSnackbarData?.dismiss()
+                                snackbarHostState.showSnackbar("今日打卡状态已重置（药箱库存已还原）")
                             }
                         },
                         onShowEbmManifesto = { showEbmManifestoDialog = true },
@@ -210,6 +295,7 @@ fun MedMateApp(viewModel: MedicationViewModel) {
                     2 -> EvidenceDietScreen()
                     3 -> StatsAndStockScreen(
                         medications = medications,
+                        currentDateIso = currentDateIso,
                         onRestock = { med, amount ->
                             viewModel.restock(med, amount)
                             coroutineScope.launch {
@@ -220,7 +306,7 @@ fun MedMateApp(viewModel: MedicationViewModel) {
                         onResetDaily = {
                             viewModel.resetDailyStatus()
                             coroutineScope.launch {
-                                snackbarHostState.showSnackbar("今日服药记录已重置")
+                                snackbarHostState.showSnackbar("今日服药记录已重置（药箱库存已还原）")
                             }
                         },
                         onLoadPreset = {
@@ -422,6 +508,7 @@ private fun IOSTabBarItem(
 @Composable
 fun TodayRegimenScreen(
     medications: List<Medication>,
+    currentDateIso: String,
     selectedPeriod: String,
     onSelectPeriod: (String) -> Unit,
     onAddClick: () -> Unit,
@@ -430,11 +517,13 @@ fun TodayRegimenScreen(
     onDeleteMed: (Medication) -> Unit,
     onClearAll: () -> Unit,
     onMarkAllTaken: () -> Unit,
+    onResetToday: () -> Unit,
     onShowEbmManifesto: () -> Unit,
     onLoadPreset: () -> Unit
 ) {
-    val dateFormatted = remember {
-        LocalDate.now().format(DateTimeFormatter.ofPattern("M月d日 EEEE", Locale.CHINESE))
+    val dateFormatted = remember(currentDateIso) {
+        val parsed = runCatching { LocalDate.parse(currentDateIso) }.getOrElse { LocalDate.now() }
+        parsed.format(DateTimeFormatter.ofPattern("M月d日 EEEE", Locale.CHINESE))
     }
     var isManageMode by remember { mutableStateOf(false) }
     var showClearAllConfirm by remember { mutableStateOf(false) }
@@ -554,7 +643,8 @@ fun TodayRegimenScreen(
             EvidenceHeroBanner(
                 medications = medications,
                 onShowEbmManifesto = onShowEbmManifesto,
-                onMarkAllTaken = onMarkAllTaken
+                onMarkAllTaken = onMarkAllTaken,
+                onResetToday = onResetToday
             )
         }
 

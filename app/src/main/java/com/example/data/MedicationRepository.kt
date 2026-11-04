@@ -15,6 +15,9 @@ class MedicationRepository(private val medicationDao: MedicationDao) {
     }
     suspend fun deleteByName(name: String) = medicationDao.deleteByName(name)
     suspend fun deleteAll() = medicationDao.deleteAll()
+    suspend fun getAllOnce(): List<Medication> = medicationDao.getAllMedicationsOnce()
     suspend fun resetDailyStatus() = medicationDao.resetDailyStatus()
-    suspend fun markPeriodTaken(period: String) = medicationDao.markPeriodTaken(period)
+    suspend fun refreshStaleDailyStatus(todayIso: String): Int = medicationDao.refreshStaleDailyStatus(todayIso)
+    suspend fun markPeriodTaken(period: String, todayIso: String, nowTime: String) =
+        medicationDao.markPeriodTaken(period, todayIso, nowTime)
 }

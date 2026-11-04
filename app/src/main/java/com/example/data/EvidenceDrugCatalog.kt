@@ -437,7 +437,7 @@ object EvidenceDrugCatalog {
             frequency = "每天",
             evidenceLevel = "Grade A • 一线降压基药",
             clinicalNote = "长效二氢吡啶类钙拮抗剂 (CCB)，半衰期 35-50 小时，平稳控制 24 小时血压。请勿用任何无循证依据的草药茶替代。",
-            isTakenToday = true,
+            isTakenToday = false,
             stockCount = 24,
             streakDays = 14,
             color = 0xFFFF2D55.toInt()

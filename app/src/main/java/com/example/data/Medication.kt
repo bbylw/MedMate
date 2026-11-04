@@ -17,6 +17,8 @@ data class Medication(
     val evidenceLevel: String = "Grade A • RCT强证据",
     val clinicalNote: String = "遵循现代循证医学指南按时定量服用，切勿与不明成分草药或偏方同服。",
     val isTakenToday: Boolean = false,
+    val lastTakenDate: String = "", // ISO format "yyyy-MM-dd"
+    val lastTakenTime: String = "", // format "HH:mm"
     val stockCount: Int = 28,
     val streakDays: Int = 3,
     val color: Int = 0xFFFF2D55.toInt()
