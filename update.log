@@ -1,0 +1,21 @@
+================================================================================
+MedMate (循证用药) 构建与版本更新日志 (update.log)
+Application ID : com.aistudio.medreminder.kyzpln
+Current Version: v1.2.0 (versionCode = 2)
+APK Location   : /MedMate.apk
+================================================================================
+
+[2026-11-04] BUILD v1.2.0 (versionCode = 2)
+  * [VERSION] 升级 app/build.gradle.kts 版本号: versionCode 1 -> 2, versionName "1.0" -> "1.2.0"
+  * [REFRESH] 修复「今日用药」跨天不刷新问题：新增 Room v2 数据库字段 lastTakenDate / lastTakenTime 与 4 重跨天自动归零触发器
+  * [BUGFIX] 修复编辑药物丢失打卡时间戳、剂量步进器基准丢失、空列表完成率显示 100%、同名药物重复插入等 8 项逻辑问题
+  * [APK] 重新编译 Debug APK 并同步更新至项目根目录 /MedMate.apk
+
+[2026-11-03] BUILD v1.1.0
+  * [FEATURE] 新增单次服药剂量自由调节（步进器 + 快捷剂量胶囊 + 手动输入）
+  * [FEATURE] 修复药物加入计划后无法移除的 Bug，打通 4 处移除入口与 Snackbar 撤销恢复
+  * [CONTENT] 优化循证药典 2x2 药代动力学网格展示，在健康饮食模块新增循证运动处方与服药运动安全协同提示
+
+[2026-11-02] INITIAL BUILD v1.0.0 (versionCode = 1)
+  * [INIT] 完成「循证用药 (MedMate)」初始版本开发与构建
+================================================================================

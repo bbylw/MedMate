@@ -38,6 +38,7 @@ import androidx.compose.ui.text.style.TextDecoration
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import com.example.data.EvidenceDrugCatalog
 import com.example.data.Medication
 import com.example.ui.theme.AmberWarning
 import com.example.ui.theme.CrimsonDanger
@@ -788,9 +789,14 @@ fun MedicationDetailSheetContent(
         }
 
         // Interactive Dosage Adjuster Card right inside Detail Sheet!
+        val baseReferenceDosage = remember(medication.id, medication.name) {
+            EvidenceDrugCatalog.catalogDrugs.find { it.name == medication.name }?.defaultDosage
+                ?: medication.dosage
+        }
         IOSDosageAdjusterCard(
             currentDosage = medication.dosage,
             form = medication.form,
+            baseReferenceDosage = baseReferenceDosage,
             onDosageChange = onUpdateDosage
         )
 
@@ -978,6 +984,7 @@ fun IOSDosageAdjusterCard(
     val presets = remember(baseReferenceDosage, form) {
         buildSmartDosagePresets(baseReferenceDosage, form)
     }
+    val formUnit = unitForForm(form)
 
     Surface(
         color = MaterialTheme.colorScheme.surface,
@@ -1009,7 +1016,7 @@ fun IOSDosageAdjusterCard(
                     )
                 }
                 Text(
-                    text = "可加减半片/整片或自定义输入",
+                    text = "可加减半${formUnit}/整${formUnit}或自定义输入",
                     style = MaterialTheme.typography.labelSmall,
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                     fontSize = 11.sp
@@ -1052,7 +1059,7 @@ fun IOSDosageAdjusterCard(
                             )
                             Spacer(modifier = Modifier.width(2.dp))
                             Text(
-                                text = "减半片",
+                                text = "减半$formUnit",
                                 style = MaterialTheme.typography.labelMedium,
                                 color = IOSHealthCoral,
                                 fontWeight = FontWeight.Bold
@@ -1101,7 +1108,7 @@ fun IOSDosageAdjusterCard(
                             )
                             Spacer(modifier = Modifier.width(2.dp))
                             Text(
-                                text = "加半片",
+                                text = "加半$formUnit",
                                 style = MaterialTheme.typography.labelMedium,
                                 color = IOSHealthCoral,
                                 fontWeight = FontWeight.Bold
@@ -1209,14 +1216,19 @@ fun IOSDosageAdjusterCard(
 fun buildSmartDosagePresets(baseDosage: String, form: String): List<String> {
     val unit = unitForForm(form)
     val result = mutableListOf<String>()
+    val trimmed = baseDosage.trim()
 
-    // Pattern 1: Single strength with count e.g. "20mg (1片)" or "0.5mg (1片)" or "1000IU (1粒)"
-    val singleRegex = Regex("""^(\d+(?:\.\d+)?)\s*(mg|g|μg|mcg|IU|单位)\s*\(\s*(\d+(?:\.\d+)?)\s*([片粒袋支滴喷次])\s*\)$""", RegexOption.IGNORE_CASE)
-    val singleMatch = singleRegex.find(baseDosage.trim())
+    // Pattern 1: Single strength with count e.g. "20mg (1片)", "5 mg • 1片", "0.5mg (1片)", "1000IU (1粒)"
+    val singleRegex = Regex(
+        """^(\d+(?:\.\d+)?)\s*(mg|g|μg|mcg|IU|单位)\s*(?:\(\s*|[•·]\s*|\s+)(半|\d+(?:\.\d+)?)\s*([片粒袋支滴喷次])\s*\)?$""",
+        RegexOption.IGNORE_CASE
+    )
+    val singleMatch = singleRegex.find(trimmed)
     if (singleMatch != null) {
         val baseStrength = singleMatch.groupValues[1].toFloatOrNull() ?: 1f
         val strengthUnit = singleMatch.groupValues[2]
-        val baseCount = (singleMatch.groupValues[3].toFloatOrNull() ?: 1f).coerceAtLeast(0.5f)
+        val countToken = singleMatch.groupValues[3]
+        val baseCount = (if (countToken == "半") 0.5f else countToken.toFloatOrNull() ?: 1f).coerceAtLeast(0.5f)
         val pillUnit = singleMatch.groupValues[4]
         val strengthPerOne = baseStrength / baseCount
 
@@ -1224,14 +1236,28 @@ fun buildSmartDosagePresets(baseDosage: String, form: String): List<String> {
         multipliers.forEach { count ->
             val scaledStrength = formatNumberClean(strengthPerOne * count)
             val countLabel = if (count == 0.5f) "半$pillUnit" else "${formatNumberClean(count)}$pillUnit"
-            result.add("${scaledStrength}${strengthUnit} ($countLabel)")
+            result.add("$scaledStrength $strengthUnit ($countLabel)")
         }
         return result.distinct()
     }
 
-    // Pattern 2: Fixed-dose combination e.g. "80mg/5mg (1片)"
-    val comboRegex = Regex("""^(.+?)\s*\(\s*(\d+(?:\.\d+)?)\s*([片粒袋支滴喷次])\s*\)$""")
-    val comboMatch = comboRegex.find(baseDosage.trim())
+    // Pattern 2: Plain strength without pill count e.g. "20mg" or "10 mg"
+    val plainStrengthRegex = Regex("""^(\d+(?:\.\d+)?)\s*(mg|g|μg|mcg|IU|单位)$""", RegexOption.IGNORE_CASE)
+    val plainMatch = plainStrengthRegex.find(trimmed)
+    if (plainMatch != null) {
+        val strengthPerOne = plainMatch.groupValues[1].toFloatOrNull() ?: 1f
+        val strengthUnit = plainMatch.groupValues[2]
+        listOf(0.5f, 1f, 1.5f, 2f, 3f).forEach { count ->
+            val scaledStrength = formatNumberClean(strengthPerOne * count)
+            val countLabel = if (count == 0.5f) "半$unit" else "${formatNumberClean(count)}$unit"
+            result.add("$scaledStrength $strengthUnit ($countLabel)")
+        }
+        return result.distinct()
+    }
+
+    // Pattern 3: Fixed-dose combination e.g. "80mg/5mg (1片)" or "80mg/5mg • 1片"
+    val comboRegex = Regex("""^(.+?)\s*(?:\(\s*|[•·]\s*)(半|\d+(?:\.\d+)?)\s*([片粒袋支滴喷次])\s*\)?$""")
+    val comboMatch = comboRegex.find(trimmed)
     if (comboMatch != null) {
         val prefix = comboMatch.groupValues[1].trim()
         val pillUnit = comboMatch.groupValues[3]
@@ -1243,8 +1269,8 @@ fun buildSmartDosagePresets(baseDosage: String, form: String): List<String> {
     }
 
     // Fallback generic presets
-    if (baseDosage.isNotBlank()) {
-        result.add(baseDosage)
+    if (trimmed.isNotBlank()) {
+        result.add(trimmed)
     }
     result.addAll(
         listOf(
@@ -1252,12 +1278,12 @@ fun buildSmartDosagePresets(baseDosage: String, form: String): List<String> {
             "1$unit",
             "1.5$unit",
             "2$unit",
-            "5mg (1$unit)",
-            "10mg (1$unit)",
-            "20mg (1$unit)",
-            "50mg (1$unit)",
-            "100mg (1$unit)",
-            "500mg (1$unit)"
+            "5 mg (1$unit)",
+            "10 mg (1$unit)",
+            "20 mg (1$unit)",
+            "50 mg (1$unit)",
+            "100 mg (1$unit)",
+            "500 mg (1$unit)"
         )
     )
     return result.distinct().take(6)
@@ -1270,8 +1296,11 @@ fun stepDosageString(currentDosage: String, deltaCount: Float, form: String): St
     val defaultUnit = unitForForm(form)
     val trimmed = currentDosage.trim()
 
-    // 1. Check "20mg (1片)" or "10mg (半片)"
-    val singleRegex = Regex("""^(\d+(?:\.\d+)?)\s*(mg|g|μg|mcg|IU|单位)\s*\(\s*(半|\d+(?:\.\d+)?)\s*([片粒袋支滴喷次])\s*\)$""", RegexOption.IGNORE_CASE)
+    // 1. Check "20mg (1片)", "10mg (半片)", "5 mg • 1片", etc.
+    val singleRegex = Regex(
+        """^(\d+(?:\.\d+)?)\s*(mg|g|μg|mcg|IU|单位)\s*(?:\(\s*|[•·]\s*|\s+)(半|\d+(?:\.\d+)?)\s*([片粒袋支滴喷次])\s*\)?$""",
+        RegexOption.IGNORE_CASE
+    )
     val singleMatch = singleRegex.find(trimmed)
     if (singleMatch != null) {
         val curStrength = singleMatch.groupValues[1].toFloatOrNull() ?: 1f
@@ -1284,11 +1313,23 @@ fun stepDosageString(currentDosage: String, deltaCount: Float, form: String): St
         val nextCount = (curCount + deltaCount).coerceIn(0.5f, 10f)
         val nextStrength = formatNumberClean(strengthPerOne * nextCount)
         val countLabel = if (nextCount == 0.5f) "半$pillUnit" else "${formatNumberClean(nextCount)}$pillUnit"
-        return "${nextStrength}${strengthUnit} ($countLabel)"
+        return "$nextStrength $strengthUnit ($countLabel)"
     }
 
-    // 2. Check compound "80mg/5mg (1片)" or "80mg/5mg (半片)"
-    val comboRegex = Regex("""^(.+?)\s*\(\s*(半|\d+(?:\.\d+)?)\s*([片粒袋支滴喷次])\s*\)$""")
+    // 2. Check plain strength "20mg" or "10 mg"
+    val plainStrengthRegex = Regex("""^(\d+(?:\.\d+)?)\s*(mg|g|μg|mcg|IU|单位)$""", RegexOption.IGNORE_CASE)
+    val plainMatch = plainStrengthRegex.find(trimmed)
+    if (plainMatch != null) {
+        val curStrength = plainMatch.groupValues[1].toFloatOrNull() ?: 1f
+        val strengthUnit = plainMatch.groupValues[2]
+        val nextCount = (1f + deltaCount).coerceIn(0.5f, 10f)
+        val nextStrength = formatNumberClean(curStrength * nextCount)
+        val countLabel = if (nextCount == 0.5f) "半$defaultUnit" else "${formatNumberClean(nextCount)}$defaultUnit"
+        return "$nextStrength $strengthUnit ($countLabel)"
+    }
+
+    // 3. Check compound "80mg/5mg (1片)" or "80mg/5mg • 1片"
+    val comboRegex = Regex("""^(.+?)\s*(?:\(\s*|[•·]\s*)(半|\d+(?:\.\d+)?)\s*([片粒袋支滴喷次])\s*\)?$""")
     val comboMatch = comboRegex.find(trimmed)
     if (comboMatch != null) {
         val prefix = comboMatch.groupValues[1].trim()
@@ -1300,8 +1341,8 @@ fun stepDosageString(currentDosage: String, deltaCount: Float, form: String): St
         return "$prefix ($countLabel)"
     }
 
-    // 3. Check simple count "1片", "半片", "1.5粒"
-    val simpleRegex = Regex("""^(半|\d+(?:\.\d+)?)\s*([片粒袋支滴喷次])$""")
+    // 4. Check simple count "1片", "半片", "1.5粒" or "半片 (0.5片)"
+    val simpleRegex = Regex("""^(半|\d+(?:\.\d+)?)\s*([片粒袋支滴喷次]).*$""")
     val simpleMatch = simpleRegex.find(trimmed)
     if (simpleMatch != null) {
         val countToken = simpleMatch.groupValues[1]
@@ -1311,8 +1352,8 @@ fun stepDosageString(currentDosage: String, deltaCount: Float, form: String): St
         return if (nextCount == 0.5f) "半$pillUnit" else "${formatNumberClean(nextCount)}$pillUnit"
     }
 
-    // 4. Fallback: if plain number + mg, scale by 0.5x / 1.5x or append count
-    return if (deltaCount < 0) "半$defaultUnit" else "2$defaultUnit"
+    // 5. Fallback
+    return if (deltaCount < 0) "半$defaultUnit" else "1.5$defaultUnit"
 }
 
 private fun formatNumberClean(value: Float): String {

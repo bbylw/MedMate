@@ -56,17 +56,18 @@
    - **循证运动处方**：低冲击稳态有氧运动，**严格禁止 HIIT、冲刺跑等产生大量乳酸的无氧剧烈运动**（防止乳酸竞争性抑制肾小管排泄尿酸而诱发急性痛风发作）。
 
 ### 4. 药箱统计（依从性趋势与智能库存扣减）
-- **7 日服药依从趋势柱状图**：直观展示近一周准时服药率。
-- **打卡自动扣减药箱余量**：每次在《今日用药》打卡自动扣减 1 剂库存，取消打卡自动退回；余量 `≤ 7` 剂自动触发橙色/红色购药预警。
+- **7 日服药依从趋势柱状图**：按日期真实记录并展示近 7 日服药完成率。
+- **打卡自动扣减药箱余量**：每次在《今日用药》打卡自动扣减 1 剂库存，取消打卡或重置今日自动退回；余量 `≤ 7` 剂自动触发橙色/红色购药预警。
 - **一键补货与清理**：支持 `+14`、`+28盒` 快速补充库存及直接移除停用药物。
 
 ---
 
 ## 技术栈与架构
 
+- **当前版本**：`v1.2.0` (`versionCode = 2`)
 - **开发语言**：Kotlin
 - **UI 框架**：Jetpack Compose + Material 3（深度定制 Apple Health / iOS Inset Grouped 视觉体系，零蓝色系，采用 `#FF2D55` 珊瑚粉、`#34C759` 薄荷绿、`#FF9500` 暖橙、`#AF52DE` 梅紫配色）
-- **本地持久化**：Android Jetpack Room Database (`AppDatabase` v3, Kotlin Coroutines & `StateFlow`)
+- **本地持久化**：Android Jetpack Room Database (`AppDatabase` v2，含 `MIGRATION_1_2` 无损升级，Kotlin Coroutines & `StateFlow`)
 - **架构模式**：MVVM (`MedicationViewModel` + `MedicationRepository` + `MedicationDao`)
 - **字体排版**：Plus Jakarta Sans（西文标题与正文）+ JetBrains Mono（剂量、时间与临床数据等宽对齐）
 
@@ -75,16 +76,18 @@
 ## 目录结构
 
 ```text
-├── MedMate.apk                                  # 最新编译生成的安装包（可直接下载安装到手机）
+├── MedMate.apk                                  # 最新编译生成的安装包 v1.2.0（可直接下载安装到手机）
+├── CHANGELOG.md                                 # 版本迭代更新日志 (v1.0.0 -> v1.2.0)
+├── update.log                                   # 构建与版本变更日志文件
 ├── app/
-│   ├── build.gradle.kts                         # 应用模块 Gradle 配置 (applicationId: com.aistudio.medreminder.kyzpln)
+│   ├── build.gradle.kts                         # 应用模块 Gradle 配置 (versionName: "1.2.0", versionCode: 2)
 │   └── src/main/
 │       ├── AndroidManifest.xml                  # 应用清单与自适应图标配置
 │       ├── java/com/example/
-│       │   ├── MainActivity.kt                  # 主入口、底部导航栏与今日用药主界面
+│       │   ├── MainActivity.kt                  # 主入口、跨天刷新监听、底部导航栏与今日用药主界面
 │       │   ├── data/
-│       │   │   ├── AppDatabase.kt               # Room 数据库单例配置
-│       │   │   ├── Medication.kt                # 用药计划实体模型与时段推断函数
+│       │   │   ├── AppDatabase.kt               # Room 数据库单例配置与 MIGRATION_1_2
+│       │   │   ├── Medication.kt                # 用药计划实体模型（含打卡日期/时间）与时段推断函数
 │       │   │   ├── MedicationDao.kt             # Room DAO 数据访问接口
 │       │   │   ├── MedicationRepository.kt      # 数据仓库层
 │       │   │   ├── EvidenceDrugCatalog.kt       # 循证药典主目录与 10 大中草药毒性警示数据
@@ -92,7 +95,7 @@
 │       │   │   ├── EvidenceDrugCatalogExtra.kt  # 扩展循证药物库（第二部分，含单片复方制剂等）
 │       │   │   └── EvidenceDietCatalog.kt       # 5 类人群临床营养与 ACSM/AHA 循证运动处方数据库
 │       │   └── ui/
-│       │       ├── MedicationViewModel.kt       # 状态管理、剂量换算更新与药箱库存逻辑
+│       │       ├── MedicationViewModel.kt       # 状态管理、00:00 跨天同步、剂量换算与药箱库存逻辑
 │       │       ├── components/
 │       │       │   ├── HeroComponents.kt        # Apple Health 双环卡片、用药列表行、详情弹窗与智能剂量调节器
 │       │       │   ├── EvidenceLibraryScreen.kt # 循证药典、毒性警示录与证据金字塔界面

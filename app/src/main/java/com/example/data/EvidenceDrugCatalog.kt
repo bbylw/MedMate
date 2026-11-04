@@ -429,7 +429,7 @@ object EvidenceDrugCatalog {
         Medication(
             name = "苯磺酸氨氯地平片",
             genericName = "Amlodipine Besylate",
-            dosage = "5 mg • 1片",
+            dosage = "5 mg (1片)",
             form = "片剂",
             time = "07:30",
             period = "晨起",
@@ -445,7 +445,7 @@ object EvidenceDrugCatalog {
         Medication(
             name = "维生素 D3 软胶囊",
             genericName = "Cholecalciferol (Vit D3)",
-            dosage = "1000 IU • 1粒",
+            dosage = "1000 IU (1粒)",
             form = "胶囊",
             time = "12:30",
             period = "午餐",
@@ -461,7 +461,7 @@ object EvidenceDrugCatalog {
         Medication(
             name = "盐酸二甲双胍缓释片",
             genericName = "Metformin HCl XR",
-            dosage = "500 mg • 1片",
+            dosage = "500 mg (1片)",
             form = "缓释片",
             time = "18:30",
             period = "晚餐",
@@ -477,7 +477,7 @@ object EvidenceDrugCatalog {
         Medication(
             name = "阿托伐他汀钙片",
             genericName = "Atorvastatin Calcium",
-            dosage = "20 mg • 1片",
+            dosage = "20 mg (1片)",
             form = "片剂",
             time = "21:30",
             period = "睡前",

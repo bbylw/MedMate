@@ -1,5 +1,6 @@
 package com.example.ui.components
 
+import android.content.Context
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
@@ -17,6 +18,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextDecoration
@@ -33,13 +35,32 @@ import com.example.ui.theme.IOSMintGreen
 import com.example.ui.theme.IOSPlumPurple
 import com.example.ui.theme.IOSWarmOrange
 import com.example.ui.theme.JetBrainsMonoFontFamily
+import java.time.LocalDate
 
 @Composable
-fun EvidenceDietScreen() {
+fun EvidenceDietScreen(
+    currentDateIso: String = LocalDate.now().toString()
+) {
+    val context = LocalContext.current
+    val prefs = remember(context) {
+        context.getSharedPreferences("medmate_prefs", Context.MODE_PRIVATE)
+    }
     val profiles = EvidenceDietCatalog.dietProfiles
     var selectedProfileIndex by remember { mutableIntStateOf(0) }
     var selectedFoodTrafficTab by remember { mutableIntStateOf(0) } // 0: 绿灯推荐, 1: 黄灯限量, 2: 红灯禁忌
-    val checkedHabits = remember { mutableStateMapOf<String, Boolean>() }
+
+    val habitPrefsKey = "diet_habits_$currentDateIso"
+    val checkedHabits = remember(currentDateIso) {
+        val savedSet = prefs.getStringSet(habitPrefsKey, emptySet()) ?: emptySet()
+        mutableStateMapOf<String, Boolean>().apply {
+            savedSet.forEach { put(it, true) }
+        }
+    }
+
+    val saveCheckedHabits: () -> Unit = {
+        val activeKeys = checkedHabits.filterValues { it }.keys.toSet()
+        prefs.edit().putStringSet(habitPrefsKey, activeKeys).apply()
+    }
 
     val currentProfile = profiles[selectedProfileIndex]
     val accentColor = Color(currentProfile.accentColorHex)
@@ -55,7 +76,7 @@ fun EvidenceDietScreen() {
         item {
             Column {
                 Text(
-                    text = "CLINICAL NUTRITION & EXERCISE",
+                    text = "CLINICAL NUTRITION & EXERCISE · $currentDateIso",
                     style = MaterialTheme.typography.labelMedium,
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                     fontWeight = FontWeight.SemiBold
@@ -301,16 +322,40 @@ fun EvidenceDietScreen() {
             }
         }
 
-        // Interactive Daily Diet & Exercise Habit Checklist (iOS Reminders Style)
+        // Interactive Daily Diet & Exercise Habit Checklist (iOS Reminders Style, Daily Auto-Reset)
         item {
+            val doneCount = currentProfile.dailyChecklist.indices.count { idx ->
+                checkedHabits["${currentProfile.id}_$idx"] == true
+            }
             Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
-                Text(
-                    text = "今日循证饮食与运动习惯自查",
-                    style = MaterialTheme.typography.labelSmall,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant,
-                    fontWeight = FontWeight.SemiBold,
-                    modifier = Modifier.padding(start = 12.dp)
-                )
+                Row(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(horizontal = 12.dp),
+                    horizontalArrangement = Arrangement.SpaceBetween,
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    Text(
+                        text = "今日循证饮食与运动习惯自查 ($doneCount/${currentProfile.dailyChecklist.size})",
+                        style = MaterialTheme.typography.labelSmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        fontWeight = FontWeight.SemiBold
+                    )
+                    if (doneCount > 0) {
+                        Text(
+                            text = "重置今日自查",
+                            style = MaterialTheme.typography.labelSmall,
+                            color = IOSHealthCoral,
+                            fontWeight = FontWeight.Bold,
+                            modifier = Modifier.clickable {
+                                currentProfile.dailyChecklist.indices.forEach { idx ->
+                                    checkedHabits.remove("${currentProfile.id}_$idx")
+                                }
+                                saveCheckedHabits()
+                            }
+                        )
+                    }
+                }
                 Surface(
                     shape = RoundedCornerShape(14.dp),
                     color = MaterialTheme.colorScheme.surface,
@@ -323,7 +368,10 @@ fun EvidenceDietScreen() {
                             Column(
                                 modifier = Modifier
                                     .fillMaxWidth()
-                                    .clickable { checkedHabits[key] = !isChecked }
+                                    .clickable {
+                                        checkedHabits[key] = !isChecked
+                                        saveCheckedHabits()
+                                    }
                             ) {
                                 Row(
                                     modifier = Modifier

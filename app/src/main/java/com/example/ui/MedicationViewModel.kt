@@ -8,6 +8,7 @@ import com.example.data.EvidenceDrugCatalog
 import com.example.data.Medication
 import com.example.data.MedicationRepository
 import com.example.data.inferPeriodFromTime
+import com.example.data.normalizeTimeFormat
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
@@ -101,15 +102,53 @@ class MedicationViewModel(private val repository: MedicationRepository) : ViewMo
     }
 
     fun loadPresetRegimen() = viewModelScope.launch {
-        repository.insertAll(EvidenceDrugCatalog.defaultSampleMedications())
+        val existingNames = repository.getAllOnce().map { it.name }.toSet()
+        val toInsert = EvidenceDrugCatalog.defaultSampleMedications().filter { it.name !in existingNames }
+        if (toInsert.isNotEmpty()) {
+            repository.insertAll(toInsert)
+        }
     }
 
     fun insert(medication: Medication) = viewModelScope.launch {
-        repository.insert(medication)
+        val normalizedTime = normalizeTimeFormat(medication.time)
+        val cleanMed = medication.copy(
+            name = medication.name.trim(),
+            time = normalizedTime,
+            period = inferPeriodFromTime(normalizedTime),
+            stockCount = max(0, medication.stockCount)
+        )
+        if (cleanMed.id == 0) {
+            val existing = repository.getAllOnce().firstOrNull { it.name == cleanMed.name }
+            if (existing != null) {
+                repository.update(
+                    cleanMed.copy(
+                        id = existing.id,
+                        isTakenToday = existing.isTakenToday,
+                        lastTakenDate = existing.lastTakenDate,
+                        lastTakenTime = existing.lastTakenTime,
+                        streakDays = existing.streakDays
+                    )
+                )
+                return@launch
+            }
+        }
+        repository.insert(cleanMed)
+    }
+
+    fun restoreDeleted(medication: Medication) = viewModelScope.launch {
+        repository.insert(medication.copy(id = 0))
     }
 
     fun update(medication: Medication) = viewModelScope.launch {
-        repository.update(medication)
+        val normalizedTime = normalizeTimeFormat(medication.time)
+        repository.update(
+            medication.copy(
+                name = medication.name.trim(),
+                time = normalizedTime,
+                period = inferPeriodFromTime(normalizedTime),
+                stockCount = max(0, medication.stockCount)
+            )
+        )
     }
 
     fun toggleTaken(medication: Medication) = viewModelScope.launch {
@@ -145,8 +184,13 @@ class MedicationViewModel(private val repository: MedicationRepository) : ViewMo
         val nowTime = LocalTime.now().format(DateTimeFormatter.ofPattern("HH:mm"))
         _currentDateIso.value = todayIso
 
-        val targets = medications.value.filter {
+        val periodTargets = medications.value.filter {
             (period == "全部" || it.period == period) && !it.isTakenToday
+        }
+        val targets = if (periodTargets.isNotEmpty()) {
+            periodTargets
+        } else {
+            medications.value.filter { !it.isTakenToday }
         }
         targets.forEach { med ->
             repository.update(
@@ -194,8 +238,8 @@ class MedicationViewModel(private val repository: MedicationRepository) : ViewMo
         customMeal: String = drug.mealInstruction
     ) = viewModelScope.launch {
         val finalDosage = customDosage.trim().ifBlank { drug.defaultDosage }
-        val finalTime = customTime.trim().ifBlank { drug.recommendedTime }
-        val existing = medications.value.firstOrNull { it.name == drug.name }
+        val finalTime = normalizeTimeFormat(customTime.trim().ifBlank { drug.recommendedTime })
+        val existing = repository.getAllOnce().firstOrNull { it.name == drug.name }
         if (existing != null) {
             repository.update(
                 existing.copy(
@@ -230,7 +274,7 @@ class MedicationViewModel(private val repository: MedicationRepository) : ViewMo
 
     fun updateDosage(medication: Medication, newDosage: String) = viewModelScope.launch {
         val cleanDosage = newDosage.trim()
-        if (cleanDosage.isNotEmpty()) {
+        if (cleanDosage.isNotEmpty() && cleanDosage != medication.dosage) {
             repository.update(medication.copy(dosage = cleanDosage))
         }
     }

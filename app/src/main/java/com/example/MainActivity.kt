@@ -198,7 +198,7 @@ fun MedMateApp(viewModel: MedicationViewModel) {
                 duration = SnackbarDuration.Short
             )
             if (result == SnackbarResult.ActionPerformed) {
-                viewModel.insert(med.copy(id = 0))
+                viewModel.restoreDeleted(med)
             }
         }
     }
@@ -292,7 +292,7 @@ fun MedMateApp(viewModel: MedicationViewModel) {
                             }
                         }
                     )
-                    2 -> EvidenceDietScreen()
+                    2 -> EvidenceDietScreen(currentDateIso = currentDateIso)
                     3 -> StatsAndStockScreen(
                         medications = medications,
                         currentDateIso = currentDateIso,
@@ -376,6 +376,9 @@ fun MedMateApp(viewModel: MedicationViewModel) {
                             viewModel.insert(savedMed)
                         } else {
                             viewModel.update(savedMed)
+                        }
+                        if (selectedPeriod != "全部" && savedMed.period != selectedPeriod) {
+                            viewModel.selectPeriod("全部")
                         }
                         showAddEditSheet = false
                         editingMedication = null

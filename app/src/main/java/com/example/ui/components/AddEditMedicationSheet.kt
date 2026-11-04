@@ -27,6 +27,7 @@ import androidx.compose.ui.unit.sp
 import com.example.data.EvidenceDrugCatalog
 import com.example.data.Medication
 import com.example.data.inferPeriodFromTime
+import com.example.data.normalizeTimeFormat
 import com.example.ui.theme.CrimsonDanger
 import com.example.ui.theme.IOSHealthCoral
 import com.example.ui.theme.PillColorPalette
@@ -40,8 +41,13 @@ fun AddEditMedicationSheet(
 ) {
     var name by remember(initialMedication) { mutableStateOf(initialMedication?.name ?: "") }
     var genericName by remember(initialMedication) { mutableStateOf(initialMedication?.genericName ?: "") }
-    var dosage by remember(initialMedication) { mutableStateOf(initialMedication?.dosage ?: "20mg (1片)") }
-    var baseReferenceDosage by remember(initialMedication) { mutableStateOf(initialMedication?.dosage ?: "20mg (1片)") }
+    var dosage by remember(initialMedication) { mutableStateOf(initialMedication?.dosage ?: "20 mg (1片)") }
+    var baseReferenceDosage by remember(initialMedication) {
+        val catalogDefault = initialMedication?.name?.let { medName ->
+            EvidenceDrugCatalog.catalogDrugs.find { it.name == medName }?.defaultDosage
+        }
+        mutableStateOf(catalogDefault ?: initialMedication?.dosage ?: "20 mg (1片)")
+    }
     var form by remember(initialMedication) { mutableStateOf(initialMedication?.form ?: "片剂") }
     var time by remember(initialMedication) { mutableStateOf(initialMedication?.time ?: "08:00") }
     var mealInstruction by remember(initialMedication) { mutableStateOf(initialMedication?.mealInstruction ?: "餐后服用") }
@@ -98,21 +104,24 @@ fun AddEditMedicationSheet(
             TextButton(
                 onClick = {
                     if (canSave) {
+                        val normalizedTime = normalizeTimeFormat(time.ifBlank { "08:00" })
                         onSave(
                             Medication(
                                 id = initialMedication?.id ?: 0,
                                 name = name.trim(),
                                 genericName = genericName.trim(),
-                                dosage = dosage.ifBlank { "1片" }.trim(),
+                                dosage = dosage.ifBlank { "1${unitForForm(form)}" }.trim(),
                                 form = form,
-                                time = time.ifBlank { "08:00" }.trim(),
-                                period = inferPeriodFromTime(time),
+                                time = normalizedTime,
+                                period = inferPeriodFromTime(normalizedTime),
                                 mealInstruction = mealInstruction,
                                 frequency = "每天",
                                 evidenceLevel = evidenceLevel,
                                 clinicalNote = clinicalNote.trim(),
                                 isTakenToday = initialMedication?.isTakenToday ?: false,
-                                stockCount = stockCount,
+                                lastTakenDate = initialMedication?.lastTakenDate ?: "",
+                                lastTakenTime = initialMedication?.lastTakenTime ?: "",
+                                stockCount = stockCount.coerceAtLeast(0),
                                 streakDays = initialMedication?.streakDays ?: 1,
                                 color = selectedColor.toInt()
                             )
@@ -397,36 +406,61 @@ fun AddEditMedicationSheet(
                         horizontalArrangement = Arrangement.SpaceBetween,
                         verticalAlignment = Alignment.CenterVertically
                     ) {
-                        Text("初始药箱库存", style = MaterialTheme.typography.bodyLarge)
+                        Text("药箱库存", style = MaterialTheme.typography.bodyLarge)
                         Row(
                             verticalAlignment = Alignment.CenterVertically,
-                            horizontalArrangement = Arrangement.spacedBy(10.dp)
+                            horizontalArrangement = Arrangement.spacedBy(6.dp)
                         ) {
                             Surface(
-                                onClick = { if (stockCount > 1) stockCount -= 7 },
+                                onClick = { stockCount = (stockCount - 7).coerceAtLeast(0) },
+                                color = MaterialTheme.colorScheme.surfaceVariant,
+                                shape = RoundedCornerShape(8.dp)
+                            ) {
+                                Text(
+                                    text = "-7",
+                                    style = MaterialTheme.typography.labelMedium,
+                                    fontWeight = FontWeight.Bold,
+                                    modifier = Modifier.padding(horizontal = 8.dp, vertical = 6.dp)
+                                )
+                            }
+                            Surface(
+                                onClick = { stockCount = (stockCount - 1).coerceAtLeast(0) },
                                 color = MaterialTheme.colorScheme.surfaceVariant,
                                 shape = RoundedCornerShape(8.dp)
                             ) {
                                 Icon(
                                     Icons.Rounded.Remove,
-                                    contentDescription = "减少",
-                                    modifier = Modifier.padding(6.dp).size(18.dp)
+                                    contentDescription = "减少1",
+                                    modifier = Modifier.padding(6.dp).size(16.dp)
                                 )
                             }
                             Text(
                                 text = "$stockCount ${unitForForm(form)}",
                                 style = MaterialTheme.typography.titleMedium,
-                                fontWeight = FontWeight.Bold
+                                fontWeight = FontWeight.Bold,
+                                modifier = Modifier.padding(horizontal = 4.dp)
                             )
                             Surface(
-                                onClick = { stockCount += 7 },
+                                onClick = { stockCount += 1 },
                                 color = MaterialTheme.colorScheme.surfaceVariant,
                                 shape = RoundedCornerShape(8.dp)
                             ) {
                                 Icon(
                                     Icons.Rounded.Add,
-                                    contentDescription = "增加",
-                                    modifier = Modifier.padding(6.dp).size(18.dp)
+                                    contentDescription = "增加1",
+                                    modifier = Modifier.padding(6.dp).size(16.dp)
+                                )
+                            }
+                            Surface(
+                                onClick = { stockCount += 7 },
+                                color = MaterialTheme.colorScheme.surfaceVariant,
+                                shape = RoundedCornerShape(8.dp)
+                            ) {
+                                Text(
+                                    text = "+7",
+                                    style = MaterialTheme.typography.labelMedium,
+                                    fontWeight = FontWeight.Bold,
+                                    modifier = Modifier.padding(horizontal = 8.dp, vertical = 6.dp)
                                 )
                             }
                         }

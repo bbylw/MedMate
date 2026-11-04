@@ -1,16 +1,17 @@
 package com.example.ui.components
 
+import android.content.Context
 import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.background
-import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
-import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.rounded.*
 import androidx.compose.material3.*
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -18,10 +19,12 @@ import androidx.compose.ui.geometry.CornerRadius
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.geometry.Size
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import com.example.BuildConfig
 import com.example.data.Medication
 import com.example.ui.theme.CrimsonDanger
 import com.example.ui.theme.IOSHealthCoral
@@ -42,10 +45,20 @@ fun StatsAndStockScreen(
     onResetDaily: () -> Unit,
     onLoadPreset: () -> Unit
 ) {
+    val context = LocalContext.current
+    val prefs = remember(context) {
+        context.getSharedPreferences("medmate_prefs", Context.MODE_PRIVATE)
+    }
     val totalCount = medications.size
     val takenCount = medications.count { it.isTakenToday }
-    val todayRate = if (totalCount > 0) (takenCount * 100) / totalCount else 100
+    val todayRate = if (totalCount > 0) (takenCount * 100) / totalCount else 0
     val lowStockMeds = medications.filter { it.stockCount <= 7 }
+
+    LaunchedEffect(currentDateIso, todayRate, totalCount) {
+        if (totalCount > 0) {
+            prefs.edit().putInt("adherence_rate_$currentDateIso", todayRate).apply()
+        }
+    }
 
     LazyColumn(
         modifier = Modifier
@@ -54,7 +67,7 @@ fun StatsAndStockScreen(
         contentPadding = PaddingValues(horizontal = 16.dp, vertical = 12.dp),
         verticalArrangement = Arrangement.spacedBy(14.dp)
     ) {
-        // iOS Large Title Header
+        // iOS Large Title Header with Version Badge
         item {
             Row(
                 modifier = Modifier.fillMaxWidth(),
@@ -62,12 +75,32 @@ fun StatsAndStockScreen(
                 verticalAlignment = Alignment.Bottom
             ) {
                 Column {
-                    Text(
-                        text = "健康摘要与药箱 · $currentDateIso",
-                        style = MaterialTheme.typography.labelMedium,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant,
-                        fontWeight = FontWeight.SemiBold
-                    )
+                    Row(
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.spacedBy(6.dp)
+                    ) {
+                        Text(
+                            text = "健康摘要与药箱 · $currentDateIso",
+                            style = MaterialTheme.typography.labelMedium,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                            fontWeight = FontWeight.SemiBold
+                        )
+                        Surface(
+                            color = IOSPlumPurple.copy(alpha = 0.12f),
+                            shape = RoundedCornerShape(6.dp)
+                        ) {
+                            Text(
+                                text = "v${BuildConfig.VERSION_NAME}",
+                                style = MaterialTheme.typography.labelSmall.copy(
+                                    fontFamily = JetBrainsMonoFontFamily,
+                                    fontSize = 10.sp
+                                ),
+                                color = IOSPlumPurple,
+                                fontWeight = FontWeight.Bold,
+                                modifier = Modifier.padding(horizontal = 6.dp, vertical = 2.dp)
+                            )
+                        }
+                    }
                     Text(
                         text = "药箱统计",
                         style = MaterialTheme.typography.displayMedium.copy(
@@ -130,7 +163,11 @@ fun StatsAndStockScreen(
 
         // Apple Health Style 7-Day Adherence Chart Card
         item {
-            WeeklyAdherenceIOSCard(todayRate = todayRate, currentDateIso = currentDateIso)
+            WeeklyAdherenceIOSCard(
+                todayRate = todayRate,
+                currentDateIso = currentDateIso,
+                prefs = prefs
+            )
         }
 
         // iOS Inset Grouped Inventory Section
@@ -241,9 +278,11 @@ private fun IOSHighlightCard(
 @Composable
 private fun WeeklyAdherenceIOSCard(
     todayRate: Int,
-    currentDateIso: String
+    currentDateIso: String,
+    prefs: android.content.SharedPreferences
 ) {
     val parsedDate = runCatching { LocalDate.parse(currentDateIso) }.getOrElse { LocalDate.now() }
+    val defaultBaseline = listOf(100, 100, 75, 100, 100, 100)
     val days = (6 downTo 0).map { offset ->
         if (offset == 0) {
             "今日"
@@ -259,7 +298,14 @@ private fun WeeklyAdherenceIOSCard(
             }
         }
     }
-    val rates = listOf(100, 100, 75, 100, 100, 100, todayRate)
+    val rates = (6 downTo 0).mapIndexed { idx, offset ->
+        if (offset == 0) {
+            todayRate
+        } else {
+            val dayIso = parsedDate.minusDays(offset.toLong()).toString()
+            prefs.getInt("adherence_rate_$dayIso", defaultBaseline.getOrElse(idx) { 100 })
+        }
+    }
 
     Surface(
         modifier = Modifier.fillMaxWidth(),
