@@ -1,6 +1,9 @@
 package com.example.ui.components
 
 import android.content.Context
+import androidx.compose.animation.core.Spring
+import androidx.compose.animation.core.animateFloatAsState
+import androidx.compose.animation.core.spring
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.background
@@ -12,10 +15,12 @@ import androidx.compose.material.icons.rounded.*
 import androidx.compose.material3.*
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.getValue
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.draw.drawBehind
 import androidx.compose.ui.geometry.CornerRadius
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.geometry.Size
@@ -38,7 +43,9 @@ import com.example.ui.theme.IOSMintGlow
 import com.example.ui.theme.IOSMintGreen
 import com.example.ui.theme.IOSPlumPurple
 import com.example.ui.theme.IOSWarmOrange
+import com.example.ui.theme.IOSWarmOrangeGlow
 import com.example.ui.theme.JetBrainsMonoFontFamily
+import com.example.ui.theme.ObsidianHeroSurface
 import java.time.DayOfWeek
 import java.time.LocalDate
 import kotlin.math.min
@@ -73,7 +80,18 @@ fun StatsAndStockScreen(
     LazyColumn(
         modifier = Modifier
             .fillMaxSize()
-            .background(MaterialTheme.colorScheme.background),
+            .background(MaterialTheme.colorScheme.background)
+            .drawBehind {
+                drawCircle(
+                    brush = Brush.radialGradient(
+                        colors = listOf(IOSMintGreen.copy(alpha = 0.055f), Color.Transparent),
+                        center = Offset(size.width * 0.85f, 40.dp.toPx()),
+                        radius = size.width * 0.72f
+                    ),
+                    center = Offset(size.width * 0.85f, 40.dp.toPx()),
+                    radius = size.width * 0.72f
+                )
+            },
         contentPadding = PaddingValues(horizontal = 16.dp, vertical = 12.dp),
         verticalArrangement = Arrangement.spacedBy(14.dp)
     ) {
@@ -274,10 +292,25 @@ private fun IOSHighlightCard(
         modifier = modifier,
         shape = RoundedCornerShape(18.dp),
         color = MaterialTheme.colorScheme.surface,
-        border = BorderStroke(0.75.dp, accentColor.copy(alpha = 0.20f)),
-        shadowElevation = 1.5.dp
+        border = BorderStroke(0.75.dp, accentColor.copy(alpha = 0.22f)),
+        shadowElevation = 2.dp
     ) {
-        Column(modifier = Modifier.padding(13.dp)) {
+        Column(
+            modifier = Modifier
+                .fillMaxWidth()
+                .drawBehind {
+                    drawCircle(
+                        brush = Brush.radialGradient(
+                            colors = listOf(accentColor.copy(alpha = 0.09f), Color.Transparent),
+                            center = Offset(size.width * 0.92f, size.height * 0.14f),
+                            radius = size.width * 0.75f
+                        ),
+                        center = Offset(size.width * 0.92f, size.height * 0.14f),
+                        radius = size.width * 0.75f
+                    )
+                }
+                .padding(13.dp)
+        ) {
             Row(verticalAlignment = Alignment.CenterVertically) {
                 Box(
                     modifier = Modifier
@@ -405,78 +438,157 @@ private fun WeeklyAdherenceIOSCard(
 
             Spacer(modifier = Modifier.height(16.dp))
 
-            val trackColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.7f)
-            val guideLineColor = MaterialTheme.colorScheme.outline.copy(alpha = 0.35f)
-            Canvas(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .height(116.dp)
+            val animatedHeights = nullableRates.mapIndexed { idx, rate ->
+                val targetFraction = when {
+                    rate == null -> 0f
+                    rate == 0 -> 0.06f
+                    else -> rate.coerceIn(10, 100) / 100f
+                }
+                animateFloatAsState(
+                    targetValue = targetFraction,
+                    animationSpec = spring(dampingRatio = Spring.DampingRatioMediumBouncy, stiffness = Spring.StiffnessLow),
+                    label = "chart_bar_$idx"
+                ).value
+            }
+
+            val trackColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.75f)
+            val guideLineColor = MaterialTheme.colorScheme.outline.copy(alpha = 0.42f)
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                verticalAlignment = Alignment.Top
             ) {
-                val barCount = nullableRates.size
-                val slotWidth = size.width / barCount
-                val barWidth = min(slotWidth * 0.44f, 24.dp.toPx())
-                val maxBarHeight = size.height - 6.dp.toPx()
-
-                // Subtle dashed 50% reference line
-                val dashEffect = PathEffect.dashPathEffect(floatArrayOf(8f, 8f), 0f)
-                drawLine(
-                    color = guideLineColor,
-                    start = Offset(0f, maxBarHeight * 0.5f),
-                    end = Offset(size.width, maxBarHeight * 0.5f),
-                    strokeWidth = 1.dp.toPx(),
-                    pathEffect = dashEffect
-                )
-
-                nullableRates.forEachIndexed { index, rate ->
-                    val x = index * slotWidth + (slotWidth - barWidth) / 2f
-                    drawRoundRect(
-                        color = trackColor,
-                        topLeft = Offset(x, 0f),
-                        size = Size(barWidth, maxBarHeight),
-                        cornerRadius = CornerRadius(7.dp.toPx(), 7.dp.toPx())
+                // Editorial Micro Y-Axis Labels
+                Column(
+                    modifier = Modifier
+                        .height(118.dp)
+                        .padding(end = 6.dp),
+                    verticalArrangement = Arrangement.SpaceBetween,
+                    horizontalAlignment = Alignment.End
+                ) {
+                    Text(
+                        text = "100",
+                        style = MaterialTheme.typography.labelSmall.copy(fontFamily = JetBrainsMonoFontFamily, fontSize = 8.5.sp),
+                        color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.6f)
                     )
-                    if (rate != null) {
-                        val barHeight = if (rate == 0) {
-                            6.dp.toPx()
-                        } else {
-                            (rate.coerceIn(10, 100) / 100f) * maxBarHeight
-                        }
-                        val barBrush = when {
-                            index == barCount - 1 -> Brush.verticalGradient(listOf(IOSHealthCoralGlow, IOSHealthCoral))
-                            rate >= 90 -> Brush.verticalGradient(listOf(IOSMintGlow, IOSMintGreen))
-                            rate > 0 -> Brush.verticalGradient(listOf(Color(0xFFFFB340), IOSWarmOrange))
-                            else -> Brush.verticalGradient(listOf(Color(0xFFC7C7CC), Color(0xFFA8ABB6)))
-                        }
+                    Text(
+                        text = "50",
+                        style = MaterialTheme.typography.labelSmall.copy(fontFamily = JetBrainsMonoFontFamily, fontSize = 8.5.sp),
+                        color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.6f)
+                    )
+                    Text(
+                        text = "0",
+                        style = MaterialTheme.typography.labelSmall.copy(fontFamily = JetBrainsMonoFontFamily, fontSize = 8.5.sp),
+                        color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.6f)
+                    )
+                }
+
+                Canvas(
+                    modifier = Modifier
+                        .weight(1f)
+                        .height(118.dp)
+                ) {
+                    val barCount = nullableRates.size
+                    val slotWidth = size.width / barCount
+                    val barWidth = min(slotWidth * 0.46f, 24.dp.toPx())
+                    val maxBarHeight = size.height - 6.dp.toPx()
+
+                    // Crisp 100% & 50% dashed reference guidelines
+                    val dashEffect = PathEffect.dashPathEffect(floatArrayOf(7f, 7f), 0f)
+                    drawLine(
+                        color = guideLineColor.copy(alpha = 0.25f),
+                        start = Offset(0f, 1.dp.toPx()),
+                        end = Offset(size.width, 1.dp.toPx()),
+                        strokeWidth = 0.8.dp.toPx(),
+                        pathEffect = dashEffect
+                    )
+                    drawLine(
+                        color = guideLineColor,
+                        start = Offset(0f, maxBarHeight * 0.5f),
+                        end = Offset(size.width, maxBarHeight * 0.5f),
+                        strokeWidth = 0.9.dp.toPx(),
+                        pathEffect = dashEffect
+                    )
+
+                    nullableRates.forEachIndexed { index, rate ->
+                        val x = index * slotWidth + (slotWidth - barWidth) / 2f
                         drawRoundRect(
-                            brush = barBrush,
-                            topLeft = Offset(x, maxBarHeight - barHeight),
-                            size = Size(barWidth, barHeight),
-                            cornerRadius = CornerRadius(7.dp.toPx(), 7.dp.toPx())
+                            color = trackColor,
+                            topLeft = Offset(x, 0f),
+                            size = Size(barWidth, maxBarHeight),
+                            cornerRadius = CornerRadius(8.dp.toPx(), 8.dp.toPx())
                         )
+                        if (rate != null) {
+                            val barHeight = (animatedHeights[index] * maxBarHeight).coerceAtLeast(6.dp.toPx())
+                            val barTopY = maxBarHeight - barHeight
+                            val barBrush = when {
+                                index == barCount - 1 -> Brush.verticalGradient(listOf(IOSHealthCoralGlow, IOSHealthCoral))
+                                rate >= 90 -> Brush.verticalGradient(listOf(IOSMintGlow, IOSMintGreen))
+                                rate > 0 -> Brush.verticalGradient(listOf(IOSWarmOrangeGlow, IOSWarmOrange))
+                                else -> Brush.verticalGradient(listOf(Color(0xFFC7C7CC), Color(0xFFA8ABB6)))
+                            }
+                            drawRoundRect(
+                                brush = barBrush,
+                                topLeft = Offset(x, barTopY),
+                                size = Size(barWidth, barHeight),
+                                cornerRadius = CornerRadius(8.dp.toPx(), 8.dp.toPx())
+                            )
+                            // Luminous specular pearl indicator on today's active bar
+                            if (index == barCount - 1 && barHeight > 18.dp.toPx()) {
+                                drawCircle(
+                                    color = Color.White.copy(alpha = 0.72f),
+                                    radius = 2.2.dp.toPx(),
+                                    center = Offset(x + barWidth / 2f, barTopY + 7.dp.toPx())
+                                )
+                            }
+                        }
                     }
                 }
             }
 
+            Spacer(modifier = Modifier.height(6.dp))
+
             Row(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.SpaceAround
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(start = 24.dp),
+                horizontalArrangement = Arrangement.SpaceAround,
+                verticalAlignment = Alignment.CenterVertically
             ) {
                 days.forEachIndexed { idx, label ->
                     val rate = nullableRates[idx]
+                    val isToday = idx == days.lastIndex
                     Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                        Text(
-                            text = label,
-                            style = MaterialTheme.typography.labelSmall,
-                            color = if (idx == days.lastIndex) IOSHealthCoral else MaterialTheme.colorScheme.onSurfaceVariant,
-                            fontWeight = if (idx == days.lastIndex) FontWeight.Bold else FontWeight.Normal
-                        )
+                        if (isToday) {
+                            Surface(
+                                shape = RoundedCornerShape(6.dp),
+                                color = ObsidianHeroSurface
+                            ) {
+                                Text(
+                                    text = label,
+                                    style = MaterialTheme.typography.labelSmall,
+                                    color = Color.White,
+                                    fontWeight = FontWeight.Bold,
+                                    fontSize = 9.5.sp,
+                                    modifier = Modifier.padding(horizontal = 6.dp, vertical = 1.5.dp)
+                                )
+                            }
+                        } else {
+                            Text(
+                                text = label,
+                                style = MaterialTheme.typography.labelSmall,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                fontWeight = FontWeight.Medium
+                            )
+                        }
+                        Spacer(modifier = Modifier.height(2.dp))
                         Text(
                             text = rate?.let { "$it%" } ?: "--",
                             style = MaterialTheme.typography.labelSmall.copy(
                                 fontFamily = JetBrainsMonoFontFamily,
                                 fontSize = 9.sp
                             ),
-                            color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.75f)
+                            color = if (isToday) IOSHealthCoral else MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.75f),
+                            fontWeight = if (isToday) FontWeight.Bold else FontWeight.Normal
                         )
                     }
                 }
@@ -560,7 +672,8 @@ private fun IOSStockRow(
                 Surface(
                     onClick = { onRestock(14) },
                     color = MaterialTheme.colorScheme.surfaceVariant,
-                    shape = RoundedCornerShape(8.dp)
+                    border = BorderStroke(0.5.dp, MaterialTheme.colorScheme.outlineVariant),
+                    shape = RoundedCornerShape(9.dp)
                 ) {
                     Text(
                         text = "+14",
@@ -572,8 +685,9 @@ private fun IOSStockRow(
                 }
                 Surface(
                     onClick = { onRestock(28) },
-                    color = IOSHealthCoral.copy(alpha = 0.12f),
-                    shape = RoundedCornerShape(8.dp),
+                    color = IOSHealthCoral.copy(alpha = 0.10f),
+                    border = BorderStroke(0.5.dp, IOSHealthCoral.copy(alpha = 0.28f)),
+                    shape = RoundedCornerShape(9.dp),
                     modifier = Modifier.testTag("restock_28_${medication.id}")
                 ) {
                     Text(
@@ -586,8 +700,9 @@ private fun IOSStockRow(
                 }
                 Surface(
                     onClick = onDelete,
-                    color = CrimsonDanger.copy(alpha = 0.12f),
-                    shape = RoundedCornerShape(8.dp),
+                    color = CrimsonDanger.copy(alpha = 0.10f),
+                    border = BorderStroke(0.5.dp, CrimsonDanger.copy(alpha = 0.25f)),
+                    shape = RoundedCornerShape(9.dp),
                     modifier = Modifier.testTag("stock_delete_${medication.id}")
                 ) {
                     Icon(

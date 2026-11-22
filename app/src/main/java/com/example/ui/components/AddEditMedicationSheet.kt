@@ -1,5 +1,6 @@
 package com.example.ui.components
 
+import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
@@ -172,7 +173,9 @@ fun AddEditMedicationSheet(
                                 selectedColor = preset.colorHex
                             },
                             color = MaterialTheme.colorScheme.surface,
-                            shape = RoundedCornerShape(10.dp)
+                            border = BorderStroke(0.75.dp, MaterialTheme.colorScheme.outlineVariant),
+                            shadowElevation = 0.5.dp,
+                            shape = RoundedCornerShape(12.dp)
                         ) {
                             Row(
                                 modifier = Modifier.padding(horizontal = 12.dp, vertical = 8.dp),
@@ -197,7 +200,7 @@ fun AddEditMedicationSheet(
             }
         }
 
-        // iOS Inset Grouped Section 1: 药物名称
+        // Editorial Porcelain Section 1: 药物名称
         Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
             Text(
                 text = "药物基本信息",
@@ -207,7 +210,8 @@ fun AddEditMedicationSheet(
             )
             Surface(
                 color = MaterialTheme.colorScheme.surface,
-                shape = RoundedCornerShape(14.dp),
+                border = BorderStroke(0.75.dp, MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.85f)),
+                shape = RoundedCornerShape(18.dp),
                 modifier = Modifier.fillMaxWidth()
             ) {
                 Column {

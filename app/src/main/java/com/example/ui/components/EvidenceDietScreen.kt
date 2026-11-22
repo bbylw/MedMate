@@ -92,7 +92,18 @@ fun EvidenceDietScreen(
     LazyColumn(
         modifier = Modifier
             .fillMaxSize()
-            .background(MaterialTheme.colorScheme.background),
+            .background(MaterialTheme.colorScheme.background)
+            .drawBehind {
+                drawCircle(
+                    brush = Brush.radialGradient(
+                        colors = listOf(accentColor.copy(alpha = 0.065f), Color.Transparent),
+                        center = Offset(size.width * 0.86f, 40.dp.toPx()),
+                        radius = size.width * 0.75f
+                    ),
+                    center = Offset(size.width * 0.86f, 40.dp.toPx()),
+                    radius = size.width * 0.75f
+                )
+            },
         contentPadding = PaddingValues(horizontal = 16.dp, vertical = 12.dp),
         verticalArrangement = Arrangement.spacedBy(14.dp)
     ) {
@@ -135,6 +146,11 @@ fun EvidenceDietScreen(
                             prefs.edit().putString("selected_diet_profile_id", profile.id).apply()
                         },
                         color = if (selected) pillColor else MaterialTheme.colorScheme.surface,
+                        border = BorderStroke(
+                            0.75.dp,
+                            if (selected) pillColor else MaterialTheme.colorScheme.outlineVariant
+                        ),
+                        shadowElevation = if (selected) 3.dp else 0.5.dp,
                         shape = RoundedCornerShape(20.dp),
                         modifier = Modifier.testTag("diet_profile_tab_${profile.id}")
                     ) {
@@ -165,8 +181,10 @@ fun EvidenceDietScreen(
         if (personalizedAlerts.isNotEmpty()) {
             item {
                 Surface(
-                    shape = RoundedCornerShape(14.dp),
-                    color = IOSWarmOrange.copy(alpha = 0.09f),
+                    shape = RoundedCornerShape(18.dp),
+                    color = IOSWarmOrange.copy(alpha = 0.08f),
+                    border = BorderStroke(0.75.dp, IOSWarmOrange.copy(alpha = 0.26f)),
+                    shadowElevation = 1.dp,
                     modifier = Modifier
                         .fillMaxWidth()
                         .testTag("personalized_diet_alerts_card")
@@ -304,10 +322,12 @@ fun EvidenceDietScreen(
                     else -> CrimsonDanger
                 }
 
-                // iOS Inset Grouped Food List Card
+                // Editorial Porcelain Food List Card
                 Surface(
-                    shape = RoundedCornerShape(14.dp),
+                    shape = RoundedCornerShape(18.dp),
                     color = MaterialTheme.colorScheme.surface,
+                    border = BorderStroke(0.75.dp, MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.85f)),
+                    shadowElevation = 1.5.dp,
                     modifier = Modifier.fillMaxWidth()
                 ) {
                     Column {
@@ -334,16 +354,18 @@ fun EvidenceDietScreen(
         // Drug-Food Interaction Warning Card
         item {
             Surface(
-                shape = RoundedCornerShape(14.dp),
+                shape = RoundedCornerShape(18.dp),
                 color = MaterialTheme.colorScheme.surface,
+                border = BorderStroke(0.75.dp, IOSWarmOrange.copy(alpha = 0.24f)),
+                shadowElevation = 1.5.dp,
                 modifier = Modifier.fillMaxWidth()
             ) {
                 Column(modifier = Modifier.padding(16.dp)) {
                     Row(verticalAlignment = Alignment.CenterVertically) {
                         Box(
                             modifier = Modifier
-                                .size(32.dp)
-                                .clip(RoundedCornerShape(8.dp))
+                                .size(34.dp)
+                                .clip(RoundedCornerShape(10.dp))
                                 .background(IOSWarmOrange.copy(alpha = 0.14f)),
                             contentAlignment = Alignment.Center
                         ) {
@@ -376,8 +398,10 @@ fun EvidenceDietScreen(
         // Myth Buster Card (破除食疗与运动伪科学)
         item {
             Surface(
-                shape = RoundedCornerShape(14.dp),
+                shape = RoundedCornerShape(18.dp),
                 color = MaterialTheme.colorScheme.surface,
+                border = BorderStroke(0.75.dp, CrimsonDanger.copy(alpha = 0.24f)),
+                shadowElevation = 1.5.dp,
                 modifier = Modifier.fillMaxWidth()
             ) {
                 Column(modifier = Modifier.padding(16.dp)) {

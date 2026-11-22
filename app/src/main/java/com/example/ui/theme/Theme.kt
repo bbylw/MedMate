@@ -31,25 +31,25 @@ private val LightColorScheme = lightColorScheme(
     surfaceVariant = IOSSegmentTrack,
     onSurfaceVariant = IOSLabelSecondary,
     outline = IOSSeparator,
-    outlineVariant = Color(0xFFE4E6EE)
+    outlineVariant = IOSOutlineHairline
 )
 
 private val DarkColorScheme = darkColorScheme(
-    primary = Color(0xFFFF375F),
+    primary = Color(0xFFFF4D6A),
     onPrimary = Color.White,
-    primaryContainer = Color(0xFF5C001E),
+    primaryContainer = Color(0xFF540D1E),
     onPrimaryContainer = Color(0xFFFFD9E0),
-    secondary = Color(0xFFBF5AF2),
+    secondary = Color(0xFFA775F0),
     onSecondary = Color.White,
-    secondaryContainer = Color(0xFF4A156B),
-    onSecondaryContainer = Color(0xFFF6ECFC),
-    tertiary = Color(0xFF30D158),
-    onTertiary = Color(0xFF003912),
-    tertiaryContainer = Color(0xFF0F5223),
-    onTertiaryContainer = Color(0xFFC8F7D4),
-    error = Color(0xFFFF453A),
+    secondaryContainer = Color(0xFF3E1866),
+    onSecondaryContainer = Color(0xFFF3EAFF),
+    tertiary = Color(0xFF2CC881),
+    onTertiary = Color(0xFF00381C),
+    tertiaryContainer = Color(0xFF0A472B),
+    onTertiaryContainer = Color(0xFFC9F8DF),
+    error = Color(0xFFFF5252),
     onError = Color.White,
-    errorContainer = Color(0xFF7A0B0B),
+    errorContainer = Color(0xFF6E0E0E),
     onErrorContainer = Color(0xFFFFDAD6),
     background = IOSDarkGroupedBackground,
     onBackground = IOSDarkLabelPrimary,
@@ -58,15 +58,15 @@ private val DarkColorScheme = darkColorScheme(
     surfaceVariant = IOSDarkElevatedSurface,
     onSurfaceVariant = IOSDarkLabelSecondary,
     outline = IOSDarkSeparator,
-    outlineVariant = Color(0xFF2A2C38)
+    outlineVariant = IOSDarkOutlineHairline
 )
 
 val IOSShapes = Shapes(
     extraSmall = RoundedCornerShape(10.dp),
     small = RoundedCornerShape(12.dp),
     medium = RoundedCornerShape(18.dp),
-    large = RoundedCornerShape(22.dp),
-    extraLarge = RoundedCornerShape(28.dp)
+    large = RoundedCornerShape(24.dp),
+    extraLarge = RoundedCornerShape(30.dp)
 )
 
 @Composable

@@ -1,9 +1,11 @@
 package com.example.ui.components
 
 import androidx.compose.animation.AnimatedContent
+import androidx.compose.animation.animateColorAsState
 import androidx.compose.animation.core.Spring
 import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.animation.core.spring
+import androidx.compose.animation.core.tween
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.background
@@ -53,10 +55,19 @@ import com.example.ui.theme.IOSMintGlow
 import com.example.ui.theme.IOSMintGreen
 import com.example.ui.theme.IOSPlumPurple
 import com.example.ui.theme.IOSWarmOrange
+import com.example.ui.theme.IOSWarmOrangeGlow
 import com.example.ui.theme.JetBrainsMonoFontFamily
+import com.example.ui.theme.ObsidianHeroBorder
+import com.example.ui.theme.ObsidianHeroElevated
+import com.example.ui.theme.ObsidianHeroSurface
+import com.example.ui.theme.ObsidianHeroTextPrimary
+import com.example.ui.theme.ObsidianHeroTextSecondary
 import java.time.LocalTime
+import kotlin.math.PI
 import kotlin.math.abs
+import kotlin.math.cos
 import kotlin.math.roundToInt
+import kotlin.math.sin
 
 /**
  * Parses a "HH:mm" time string into minutes since 00:00 (0..1439)
@@ -82,7 +93,7 @@ fun formatDurationMinutes(minutes: Int): String {
 }
 
 /**
- * Modern Refined Pill Segmented Control
+ * Editorial Tactile Pill Segmented Control with smooth animated transitions
  */
 @Composable
 fun IOSSegmentedControl(
@@ -93,34 +104,47 @@ fun IOSSegmentedControl(
     tagPrefix: String = "ios_segment"
 ) {
     Surface(
-        color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.85f),
-        shape = RoundedCornerShape(13.dp),
-        border = BorderStroke(0.5.dp, MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.7f)),
+        color = MaterialTheme.colorScheme.surfaceVariant,
+        shape = RoundedCornerShape(14.dp),
+        border = BorderStroke(0.6.dp, MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.85f)),
         modifier = modifier.fillMaxWidth()
     ) {
         Row(
             modifier = Modifier
                 .fillMaxWidth()
-                .padding(3.dp),
+                .padding(3.5.dp),
             horizontalArrangement = Arrangement.spacedBy(3.dp)
         ) {
             options.forEachIndexed { index, label ->
                 val selected = selectedIndex == index
+                val bgColor by animateColorAsState(
+                    targetValue = if (selected) MaterialTheme.colorScheme.surface else Color.Transparent,
+                    animationSpec = tween(200),
+                    label = "seg_bg_$index"
+                )
+                val textColor by animateColorAsState(
+                    targetValue = if (selected) MaterialTheme.colorScheme.onSurface else MaterialTheme.colorScheme.onSurfaceVariant,
+                    animationSpec = tween(200),
+                    label = "seg_text_$index"
+                )
                 Surface(
                     onClick = { onSelect(index) },
                     modifier = Modifier
                         .weight(1f)
                         .testTag("${tagPrefix}_$index"),
-                    shape = RoundedCornerShape(10.dp),
-                    color = if (selected) MaterialTheme.colorScheme.surface else Color.Transparent,
+                    shape = RoundedCornerShape(10.5.dp),
+                    color = bgColor,
+                    border = if (selected) {
+                        BorderStroke(0.5.dp, MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.55f))
+                    } else null,
                     shadowElevation = if (selected) 2.5.dp else 0.dp
                 ) {
                     Text(
                         text = label,
                         style = MaterialTheme.typography.labelLarge,
                         fontWeight = if (selected) FontWeight.Bold else FontWeight.Medium,
-                        color = if (selected) MaterialTheme.colorScheme.onSurface else MaterialTheme.colorScheme.onSurfaceVariant,
-                        modifier = Modifier.padding(vertical = 8.dp),
+                        color = textColor,
+                        modifier = Modifier.padding(vertical = 8.5.dp),
                         textAlign = TextAlign.Center,
                         fontSize = 13.sp,
                         maxLines = 1,
@@ -133,7 +157,8 @@ fun IOSSegmentedControl(
 }
 
 /**
- * Apple Health Style Summary Card (Clean White Card + Concentric Coral/Mint Rings)
+ * Flagship Obsidian Precision Health Instrument Card
+ * Deep sculpted obsidian centerpiece with studio aura lighting & 24-tick chronograph concentric rings
  */
 @Composable
 fun EvidenceHeroBanner(
@@ -164,37 +189,38 @@ fun EvidenceHeroBanner(
             .fillMaxWidth()
             .padding(horizontal = 16.dp, vertical = 6.dp)
             .testTag("evidence_hero_card"),
-        shape = RoundedCornerShape(22.dp),
-        color = MaterialTheme.colorScheme.surface,
-        border = BorderStroke(0.75.dp, MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.85f)),
-        shadowElevation = 3.dp
+        shape = RoundedCornerShape(26.dp),
+        color = ObsidianHeroSurface,
+        border = BorderStroke(0.85.dp, ObsidianHeroBorder),
+        shadowElevation = 10.dp
     ) {
         Column(
             modifier = Modifier
                 .fillMaxWidth()
                 .drawBehind {
+                    // Studio Mesh Lighting: Carmine Rose Aura top-right + Botanical Jade Aura bottom-left
                     drawCircle(
                         brush = Brush.radialGradient(
-                            colors = listOf(IOSHealthCoral.copy(alpha = 0.10f), Color.Transparent),
-                            center = Offset(size.width * 0.88f, size.height * 0.25f),
-                            radius = size.width * 0.55f
+                            colors = listOf(IOSHealthCoral.copy(alpha = 0.24f), Color.Transparent),
+                            center = Offset(size.width * 0.88f, size.height * 0.20f),
+                            radius = size.width * 0.62f
                         ),
-                        center = Offset(size.width * 0.88f, size.height * 0.25f),
-                        radius = size.width * 0.55f
+                        center = Offset(size.width * 0.88f, size.height * 0.20f),
+                        radius = size.width * 0.62f
                     )
                     drawCircle(
                         brush = Brush.radialGradient(
-                            colors = listOf(IOSMintGreen.copy(alpha = 0.08f), Color.Transparent),
-                            center = Offset(size.width * 0.12f, size.height * 0.85f),
-                            radius = size.width * 0.45f
+                            colors = listOf(IOSMintGreen.copy(alpha = 0.16f), Color.Transparent),
+                            center = Offset(size.width * 0.08f, size.height * 0.90f),
+                            radius = size.width * 0.52f
                         ),
-                        center = Offset(size.width * 0.12f, size.height * 0.85f),
-                        radius = size.width * 0.45f
+                        center = Offset(size.width * 0.08f, size.height * 0.90f),
+                        radius = size.width * 0.52f
                     )
                 }
-                .padding(18.dp)
+                .padding(horizontal = 20.dp, vertical = 18.dp)
         ) {
-            // Top Apple Health Category Row
+            // Top Editorial Eyebrow & Frosted Manifesto Pill
             Row(
                 modifier = Modifier.fillMaxWidth(),
                 horizontalArrangement = Arrangement.SpaceBetween,
@@ -203,59 +229,52 @@ fun EvidenceHeroBanner(
                 Row(verticalAlignment = Alignment.CenterVertically) {
                     Box(
                         modifier = Modifier
-                            .size(26.dp)
-                            .clip(RoundedCornerShape(8.dp))
+                            .size(8.dp)
+                            .clip(CircleShape)
                             .background(
-                                Brush.linearGradient(listOf(IOSHealthCoral, IOSHealthCoralGlow))
-                            ),
-                        contentAlignment = Alignment.Center
-                    ) {
-                        Icon(
-                            imageVector = Icons.Rounded.Favorite,
-                            contentDescription = null,
-                            tint = Color.White,
-                            modifier = Modifier.size(14.dp)
-                        )
-                    }
+                                if (totalCount > 0 && takenCount == totalCount) IOSMintGlow else IOSHealthCoralGlow
+                            )
+                    )
                     Spacer(modifier = Modifier.width(8.dp))
                     Text(
                         text = "循证用药依从度",
                         style = MaterialTheme.typography.labelLarge,
-                        color = IOSHealthCoral,
-                        fontWeight = FontWeight.ExtraBold
+                        color = ObsidianHeroTextPrimary,
+                        fontWeight = FontWeight.Bold
                     )
                 }
 
                 Surface(
                     onClick = onShowEbmManifesto,
                     shape = RoundedCornerShape(50),
-                    color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.65f),
+                    color = Color.White.copy(alpha = 0.09f),
+                    border = BorderStroke(0.5.dp, Color.White.copy(alpha = 0.14f)),
                     modifier = Modifier.testTag("ebm_manifesto_badge")
                 ) {
                     Row(
                         verticalAlignment = Alignment.CenterVertically,
-                        modifier = Modifier.padding(start = 10.dp, end = 6.dp, top = 4.dp, bottom = 4.dp)
+                        modifier = Modifier.padding(start = 10.dp, end = 6.dp, top = 4.5.dp, bottom = 4.5.dp)
                     ) {
                         Text(
                             text = "拥抱循证，拒绝中医",
                             style = MaterialTheme.typography.labelSmall,
-                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                            color = ObsidianHeroTextPrimary.copy(alpha = 0.88f),
                             fontWeight = FontWeight.SemiBold,
-                            fontSize = 11.sp
+                            fontSize = 10.5.sp
                         )
                         Icon(
                             imageVector = Icons.Rounded.ChevronRight,
                             contentDescription = null,
-                            tint = MaterialTheme.colorScheme.onSurfaceVariant,
+                            tint = ObsidianHeroTextSecondary,
                             modifier = Modifier.size(14.dp)
                         )
                     }
                 }
             }
 
-            Spacer(modifier = Modifier.height(14.dp))
+            Spacer(modifier = Modifier.height(16.dp))
 
-            // Middle Content: Left Stats + Right Apple Health Concentric Rings
+            // Centerpiece: Left Tabular Counter + Live Status Pill | Right 104dp Chronograph Dual Rings
             Row(
                 modifier = Modifier.fillMaxWidth(),
                 verticalAlignment = Alignment.CenterVertically,
@@ -267,100 +286,150 @@ fun EvidenceHeroBanner(
                             text = "$takenCount",
                             style = MaterialTheme.typography.displayLarge.copy(
                                 fontFamily = JetBrainsMonoFontFamily,
-                                fontSize = 36.sp
+                                fontSize = 44.sp,
+                                lineHeight = 46.sp
                             ),
-                            color = MaterialTheme.colorScheme.onSurface,
+                            color = ObsidianHeroTextPrimary,
                             fontWeight = FontWeight.ExtraBold
                         )
                         Text(
-                            text = " / $totalCount 剂已记录",
-                            style = MaterialTheme.typography.titleMedium,
-                            color = MaterialTheme.colorScheme.onSurfaceVariant,
-                            modifier = Modifier.padding(bottom = 5.dp, start = 4.dp)
+                            text = " / $totalCount 剂",
+                            style = MaterialTheme.typography.titleMedium.copy(
+                                fontFamily = JetBrainsMonoFontFamily
+                            ),
+                            color = ObsidianHeroTextSecondary,
+                            fontWeight = FontWeight.SemiBold,
+                            modifier = Modifier.padding(bottom = 6.dp, start = 4.dp)
                         )
                     }
 
-                    Spacer(modifier = Modifier.height(6.dp))
+                    Spacer(modifier = Modifier.height(10.dp))
 
                     if (nextPending != null) {
                         val deltaMinutes = timeStringToMinutes(nextPending.time) - currentMinutesOfDay
                         val isOverdue = deltaMinutes < 0
-                        Row(verticalAlignment = Alignment.CenterVertically) {
-                            Box(
-                                modifier = Modifier
-                                    .size(7.dp)
-                                    .clip(CircleShape)
-                                    .background(if (isOverdue) CrimsonDanger else IOSWarmOrange)
-                            )
-                            Spacer(modifier = Modifier.width(6.dp))
-                            Text(
-                                text = if (isOverdue) {
-                                    "已超时 ${formatDurationMinutes(deltaMinutes)} · ${nextPending.name}"
-                                } else if (deltaMinutes <= 15) {
-                                    "即将到点 ${nextPending.time} · ${nextPending.name}"
-                                } else {
-                                    "${formatDurationMinutes(deltaMinutes)}后 ${nextPending.time} · ${nextPending.name}"
-                                },
-                                style = MaterialTheme.typography.bodyMedium,
-                                color = if (isOverdue) CrimsonDanger else MaterialTheme.colorScheme.onSurface,
-                                fontWeight = if (isOverdue) FontWeight.Bold else FontWeight.Medium,
-                                maxLines = 1,
-                                overflow = TextOverflow.Ellipsis
-                            )
+                        val pillAccent = if (isOverdue) Color(0xFFFF6B6B) else IOSWarmOrangeGlow
+                        Surface(
+                            shape = RoundedCornerShape(10.dp),
+                            color = pillAccent.copy(alpha = 0.14f),
+                            border = BorderStroke(0.5.dp, pillAccent.copy(alpha = 0.30f))
+                        ) {
+                            Row(
+                                verticalAlignment = Alignment.CenterVertically,
+                                modifier = Modifier.padding(horizontal = 9.dp, vertical = 5.dp)
+                            ) {
+                                Box(
+                                    modifier = Modifier
+                                        .size(6.dp)
+                                        .clip(CircleShape)
+                                        .background(pillAccent)
+                                )
+                                Spacer(modifier = Modifier.width(6.dp))
+                                Text(
+                                    text = if (isOverdue) {
+                                        "已超时 ${formatDurationMinutes(deltaMinutes)} · ${nextPending.name}"
+                                    } else if (deltaMinutes <= 15) {
+                                        "即将到点 ${nextPending.time} · ${nextPending.name}"
+                                    } else {
+                                        "${formatDurationMinutes(deltaMinutes)}后 ${nextPending.time} · ${nextPending.name}"
+                                    },
+                                    style = MaterialTheme.typography.labelMedium,
+                                    color = if (isOverdue) Color(0xFFFFB4B4) else Color(0xFFFFDFA6),
+                                    fontWeight = FontWeight.SemiBold,
+                                    maxLines = 1,
+                                    overflow = TextOverflow.Ellipsis
+                                )
+                            }
                         }
                     } else if (totalCount > 0) {
-                        Row(verticalAlignment = Alignment.CenterVertically) {
-                            Box(
-                                modifier = Modifier
-                                    .size(7.dp)
-                                    .clip(CircleShape)
-                                    .background(IOSMintGreen)
-                            )
-                            Spacer(modifier = Modifier.width(6.dp))
-                            Text(
-                                text = "今日计划已全部准时完成",
-                                style = MaterialTheme.typography.bodyMedium,
-                                color = IOSMintGreen,
-                                fontWeight = FontWeight.SemiBold
-                            )
+                        Surface(
+                            shape = RoundedCornerShape(10.dp),
+                            color = IOSMintGreen.copy(alpha = 0.18f),
+                            border = BorderStroke(0.5.dp, IOSMintGlow.copy(alpha = 0.32f))
+                        ) {
+                            Row(
+                                verticalAlignment = Alignment.CenterVertically,
+                                modifier = Modifier.padding(horizontal = 9.dp, vertical = 5.dp)
+                            ) {
+                                Icon(
+                                    imageVector = Icons.Rounded.Verified,
+                                    contentDescription = null,
+                                    tint = IOSMintGlow,
+                                    modifier = Modifier.size(14.dp)
+                                )
+                                Spacer(modifier = Modifier.width(5.dp))
+                                Text(
+                                    text = "今日计划已全部准时完成",
+                                    style = MaterialTheme.typography.labelMedium,
+                                    color = Color(0xFFA7F3D0),
+                                    fontWeight = FontWeight.SemiBold
+                                )
+                            }
                         }
                     } else {
                         Text(
                             text = "点击右上角 + 添加您的科学用药计划",
-                            style = MaterialTheme.typography.bodyMedium,
-                            color = MaterialTheme.colorScheme.onSurfaceVariant
+                            style = MaterialTheme.typography.bodySmall,
+                            color = ObsidianHeroTextSecondary
                         )
                     }
 
-                    Spacer(modifier = Modifier.height(4.dp))
+                    Spacer(modifier = Modifier.height(7.dp))
                     Text(
                         text = if (overduePending.size > 1) {
                             "当前有 ${overduePending.size} 项已过计划时间待补服"
                         } else {
-                            "连续达标 ${maxStreak} 天 • 零不明草药负担"
+                            "连续达标 ${maxStreak} 天 · 零不明草药负担"
                         },
                         style = MaterialTheme.typography.bodySmall,
-                        color = if (overduePending.size > 1) CrimsonDanger else MaterialTheme.colorScheme.onSurfaceVariant
+                        color = if (overduePending.size > 1) Color(0xFFFF8A8A) else ObsidianHeroTextSecondary,
+                        fontSize = 11.5.sp
                     )
                 }
 
-                Spacer(modifier = Modifier.width(16.dp))
+                Spacer(modifier = Modifier.width(14.dp))
 
-                // Upgraded Luminous Dual Concentric Health Rings (96.dp)
+                // 106dp Precision Chronograph Dual Concentric Ring Instrument
                 Box(
-                    modifier = Modifier.size(96.dp),
+                    modifier = Modifier.size(106.dp),
                     contentAlignment = Alignment.Center
                 ) {
                     Canvas(modifier = Modifier.fillMaxSize()) {
-                        val outerStroke = 10.dp.toPx()
-                        val innerStroke = 8.5.dp.toPx()
+                        val cx = size.width / 2f
+                        val cy = size.height / 2f
+                        val tickOuterRadius = size.minDimension / 2f
+                        val tickInnerRadius = tickOuterRadius - 3.dp.toPx()
+
+                        // 24 Swiss Chronograph Precision Dial Micro-Ticks
+                        for (i in 0 until 24) {
+                            val angleRad = (i * 15.0 - 90.0) * (PI / 180.0)
+                            val isMajor = i % 6 == 0
+                            val inner = if (isMajor) tickInnerRadius - 1.5.dp.toPx() else tickInnerRadius
+                            drawLine(
+                                color = Color.White.copy(alpha = if (isMajor) 0.34f else 0.14f),
+                                start = Offset(
+                                    cx + (inner * cos(angleRad)).toFloat(),
+                                    cy + (inner * sin(angleRad)).toFloat()
+                                ),
+                                end = Offset(
+                                    cx + (tickOuterRadius * cos(angleRad)).toFloat(),
+                                    cy + (tickOuterRadius * sin(angleRad)).toFloat()
+                                ),
+                                strokeWidth = if (isMajor) 1.4.dp.toPx() else 0.9.dp.toPx(),
+                                cap = StrokeCap.Round
+                            )
+                        }
+
+                        val outerInset = 7.dp.toPx()
+                        val outerStroke = 9.dp.toPx()
+                        val innerStroke = 7.5.dp.toPx()
                         val gap = 3.5.dp.toPx()
 
-                        // Outer Ring: Daily Adherence (Apple Health Coral Gradient)
-                        val outerDia = size.minDimension - outerStroke
-                        val outerTopLeft = Offset(outerStroke / 2f, outerStroke / 2f)
+                        // Outer Ring: Daily Adherence (Carmine Rose Luminous Sweep)
+                        val outerDia = size.minDimension - (outerInset + outerStroke / 2f) * 2f
+                        val outerTopLeft = Offset(outerInset + outerStroke / 2f, outerInset + outerStroke / 2f)
                         drawArc(
-                            color = IOSHealthCoral.copy(alpha = 0.14f),
+                            color = Color.White.copy(alpha = 0.08f),
                             startAngle = -90f,
                             sweepAngle = 360f,
                             useCenter = false,
@@ -368,13 +437,19 @@ fun EvidenceHeroBanner(
                             size = Size(outerDia, outerDia),
                             style = Stroke(width = outerStroke, cap = StrokeCap.Round)
                         )
+                        // Subtle outer glow halo behind active sweep
+                        drawArc(
+                            color = IOSHealthCoral.copy(alpha = 0.28f),
+                            startAngle = -90f,
+                            sweepAngle = 360f * animatedProgress.coerceAtLeast(0.04f),
+                            useCenter = false,
+                            topLeft = outerTopLeft,
+                            size = Size(outerDia, outerDia),
+                            style = Stroke(width = outerStroke + 4.dp.toPx(), cap = StrokeCap.Round)
+                        )
                         drawArc(
                             brush = Brush.sweepGradient(
-                                listOf(
-                                    IOSHealthCoral,
-                                    IOSHealthCoralGlow,
-                                    IOSHealthCoral
-                                )
+                                listOf(IOSHealthCoral, IOSHealthCoralGlow, IOSHealthCoral)
                             ),
                             startAngle = -90f,
                             sweepAngle = 360f * animatedProgress.coerceAtLeast(0.04f),
@@ -384,12 +459,12 @@ fun EvidenceHeroBanner(
                             style = Stroke(width = outerStroke, cap = StrokeCap.Round)
                         )
 
-                        // Inner Ring: Streak Consistency (Mint Emerald Gradient)
-                        val inset = outerStroke + gap + innerStroke / 2f
-                        val innerDia = size.minDimension - inset * 2f
-                        val innerTopLeft = Offset(inset, inset)
+                        // Inner Ring: Streak Consistency (Botanical Jade Luminous Sweep)
+                        val innerInset = outerInset + outerStroke + gap + innerStroke / 2f
+                        val innerDia = size.minDimension - innerInset * 2f
+                        val innerTopLeft = Offset(innerInset, innerInset)
                         drawArc(
-                            color = IOSMintGreen.copy(alpha = 0.14f),
+                            color = Color.White.copy(alpha = 0.07f),
                             startAngle = -90f,
                             sweepAngle = 360f,
                             useCenter = false,
@@ -399,11 +474,7 @@ fun EvidenceHeroBanner(
                         )
                         drawArc(
                             brush = Brush.sweepGradient(
-                                listOf(
-                                    IOSMintGreen,
-                                    IOSMintGlow,
-                                    IOSMintGreen
-                                )
+                                listOf(IOSMintGreen, IOSMintGlow, IOSMintGreen)
                             ),
                             startAngle = -90f,
                             sweepAngle = 360f * streakProgress.coerceAtLeast(0.08f),
@@ -415,89 +486,110 @@ fun EvidenceHeroBanner(
                     }
                     Column(horizontalAlignment = Alignment.CenterHorizontally) {
                         Text(
-                            text = "${(animatedProgress * 100).toInt()}%",
+                            text = "${(animatedProgress * 100).roundToInt()}%",
                             style = MaterialTheme.typography.titleSmall.copy(
                                 fontFamily = JetBrainsMonoFontFamily,
                                 fontWeight = FontWeight.ExtraBold,
                                 fontSize = 15.sp
                             ),
-                            color = MaterialTheme.colorScheme.onSurface
+                            color = ObsidianHeroTextPrimary
                         )
                         Text(
                             text = "达标率",
                             style = MaterialTheme.typography.labelSmall,
-                            fontSize = 9.sp,
-                            color = MaterialTheme.colorScheme.onSurfaceVariant
+                            fontSize = 8.5.sp,
+                            color = ObsidianHeroTextSecondary
                         )
                     }
                 }
             }
 
             if (totalCount > 0) {
-                Spacer(modifier = Modifier.height(12.dp))
-                HorizontalDivider(
-                    thickness = 0.5.dp,
-                    color = MaterialTheme.colorScheme.outline.copy(alpha = 0.45f)
-                )
-                Spacer(modifier = Modifier.height(10.dp))
-                Row(
-                    modifier = Modifier.fillMaxWidth(),
-                    horizontalArrangement = Arrangement.SpaceBetween,
-                    verticalAlignment = Alignment.CenterVertically
+                Spacer(modifier = Modifier.height(16.dp))
+                // Translucent Obsidian Bottom Action Strip
+                Surface(
+                    shape = RoundedCornerShape(14.dp),
+                    color = ObsidianHeroElevated.copy(alpha = 0.82f),
+                    border = BorderStroke(0.5.dp, Color.White.copy(alpha = 0.08f)),
+                    modifier = Modifier.fillMaxWidth()
                 ) {
                     Row(
-                        verticalAlignment = Alignment.CenterVertically,
-                        modifier = Modifier.weight(1f, fill = false)
-                    ) {
-                        Icon(
-                            imageVector = Icons.Rounded.Autorenew,
-                            contentDescription = null,
-                            tint = IOSMintGreen,
-                            modifier = Modifier.size(14.dp)
-                        )
-                        Spacer(modifier = Modifier.width(4.dp))
-                        Text(
-                            text = if (takenCount < totalCount) {
-                                "每日00:00自动刷新 · 待服 ${totalCount - takenCount} 剂"
-                            } else {
-                                "每日00:00自动刷新 · 明日自动归零"
-                            },
-                            style = MaterialTheme.typography.bodySmall,
-                            color = MaterialTheme.colorScheme.onSurfaceVariant,
-                            maxLines = 1,
-                            overflow = TextOverflow.Ellipsis
-                        )
-                    }
-
-                    Row(
-                        horizontalArrangement = Arrangement.spacedBy(8.dp),
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(horizontal = 12.dp, vertical = 8.dp),
+                        horizontalArrangement = Arrangement.SpaceBetween,
                         verticalAlignment = Alignment.CenterVertically
                     ) {
-                        if (takenCount > 0) {
+                        Row(
+                            verticalAlignment = Alignment.CenterVertically,
+                            modifier = Modifier.weight(1f, fill = false)
+                        ) {
+                            Icon(
+                                imageVector = Icons.Rounded.Autorenew,
+                                contentDescription = null,
+                                tint = IOSMintGlow,
+                                modifier = Modifier.size(14.dp)
+                            )
+                            Spacer(modifier = Modifier.width(5.dp))
                             Text(
-                                text = "重置今日",
-                                style = MaterialTheme.typography.labelMedium,
-                                color = MaterialTheme.colorScheme.onSurfaceVariant,
-                                fontWeight = FontWeight.SemiBold,
-                                modifier = Modifier
-                                    .clip(RoundedCornerShape(6.dp))
-                                    .clickable { onResetToday() }
-                                    .padding(horizontal = 6.dp, vertical = 2.dp)
-                                    .testTag("hero_reset_today_button")
+                                text = if (takenCount < totalCount) {
+                                    "00:00自动刷新 · 待服 ${totalCount - takenCount} 剂"
+                                } else {
+                                    "00:00自动刷新 · 明日归零"
+                                },
+                                style = MaterialTheme.typography.bodySmall,
+                                color = ObsidianHeroTextSecondary,
+                                fontSize = 11.sp,
+                                maxLines = 1,
+                                overflow = TextOverflow.Ellipsis
                             )
                         }
-                        if (takenCount < totalCount) {
-                            Text(
-                                text = "全部标记为已服用",
-                                style = MaterialTheme.typography.labelLarge,
-                                color = IOSHealthCoral,
-                                fontWeight = FontWeight.SemiBold,
-                                modifier = Modifier
-                                    .clip(RoundedCornerShape(6.dp))
-                                    .clickable { onMarkAllTaken() }
-                                    .padding(horizontal = 6.dp, vertical = 2.dp)
-                                    .testTag("quick_take_all_button")
-                            )
+
+                        Row(
+                            horizontalArrangement = Arrangement.spacedBy(8.dp),
+                            verticalAlignment = Alignment.CenterVertically
+                        ) {
+                            if (takenCount > 0) {
+                                Surface(
+                                    onClick = onResetToday,
+                                    shape = RoundedCornerShape(50),
+                                    color = Color.White.copy(alpha = 0.08f),
+                                    modifier = Modifier.testTag("hero_reset_today_button")
+                                ) {
+                                    Text(
+                                        text = "重置今日",
+                                        style = MaterialTheme.typography.labelSmall,
+                                        color = ObsidianHeroTextPrimary.copy(alpha = 0.85f),
+                                        fontWeight = FontWeight.SemiBold,
+                                        modifier = Modifier.padding(horizontal = 10.dp, vertical = 5.dp)
+                                    )
+                                }
+                            }
+                            if (takenCount < totalCount) {
+                                Surface(
+                                    onClick = onMarkAllTaken,
+                                    shape = RoundedCornerShape(50),
+                                    color = Color.Transparent,
+                                    modifier = Modifier.testTag("quick_take_all_button")
+                                ) {
+                                    Box(
+                                        modifier = Modifier
+                                            .background(
+                                                Brush.linearGradient(listOf(IOSHealthCoral, IOSHealthCoralGlow)),
+                                                shape = RoundedCornerShape(50)
+                                            )
+                                            .padding(horizontal = 12.dp, vertical = 5.dp),
+                                        contentAlignment = Alignment.Center
+                                    ) {
+                                        Text(
+                                            text = "一键全服",
+                                            style = MaterialTheme.typography.labelSmall,
+                                            color = Color.White,
+                                            fontWeight = FontWeight.Bold
+                                        )
+                                    }
+                                }
+                            }
                         }
                     }
                 }
@@ -528,13 +620,17 @@ fun IOSMedicationRow(
         label = "check_scale"
     )
 
+    val rowBg by animateColorAsState(
+        targetValue = if (medication.isTakenToday) IOSMintGreen.copy(alpha = 0.055f)
+        else MaterialTheme.colorScheme.surface,
+        animationSpec = tween(240),
+        label = "row_bg"
+    )
+
     Column(
         modifier = Modifier
             .fillMaxWidth()
-            .background(
-                if (medication.isTakenToday) IOSMintGreen.copy(alpha = 0.04f)
-                else MaterialTheme.colorScheme.surface
-            )
+            .background(rowBg)
             .clickable { onRowClick() }
             .testTag("med_card_${medication.id}")
     ) {
@@ -565,7 +661,7 @@ fun IOSMedicationRow(
                 Spacer(modifier = Modifier.width(10.dp))
             }
 
-            // Modern Soft-Gradient Squircle Pill Badge
+            // Editorial Soft-Gradient Squircle Pill Badge
             Box(
                 modifier = Modifier
                     .size(44.dp)
@@ -573,15 +669,15 @@ fun IOSMedicationRow(
                     .background(
                         Brush.linearGradient(
                             colors = if (medication.isTakenToday) {
-                                listOf(IOSMintGreen.copy(alpha = 0.20f), IOSMintGlow.copy(alpha = 0.10f))
+                                listOf(IOSMintGreen.copy(alpha = 0.18f), IOSMintGlow.copy(alpha = 0.08f))
                             } else {
-                                listOf(accentColor.copy(alpha = 0.18f), accentColor.copy(alpha = 0.08f))
+                                listOf(accentColor.copy(alpha = 0.16f), accentColor.copy(alpha = 0.06f))
                             }
                         )
                     )
                     .border(
                         width = 0.75.dp,
-                        color = if (medication.isTakenToday) IOSMintGreen.copy(alpha = 0.25f) else accentColor.copy(alpha = 0.22f),
+                        color = if (medication.isTakenToday) IOSMintGreen.copy(alpha = 0.28f) else accentColor.copy(alpha = 0.24f),
                         shape = RoundedCornerShape(13.dp)
                     ),
                 contentAlignment = Alignment.Center
@@ -596,13 +692,13 @@ fun IOSMedicationRow(
 
             Spacer(modifier = Modifier.width(12.dp))
 
-            // Center iOS Cell Labels
+            // Center Editorial Cell Labels
             Column(modifier = Modifier.weight(1f)) {
                 Row(verticalAlignment = Alignment.CenterVertically) {
                     Text(
                         text = medication.name,
                         style = MaterialTheme.typography.titleMedium,
-                        fontWeight = FontWeight.SemiBold,
+                        fontWeight = FontWeight.Bold,
                         color = if (medication.isTakenToday) {
                             MaterialTheme.colorScheme.onSurfaceVariant
                         } else {
@@ -614,35 +710,48 @@ fun IOSMedicationRow(
                         modifier = Modifier.weight(1f, fill = false)
                     )
                     Spacer(modifier = Modifier.width(6.dp))
-                    Text(
-                        text = if (medication.isTakenToday) {
-                            val timeSuffix = medication.lastTakenTime.takeIf { it.isNotBlank() }?.let { " $it" } ?: ""
-                            "今日${timeSuffix}已服"
-                        } else if (isOverdue) {
-                            "${medication.time} · 已超时"
-                        } else {
-                            medication.time
-                        },
-                        style = MaterialTheme.typography.labelSmall.copy(fontFamily = JetBrainsMonoFontFamily),
+                    val timePillColor = when {
+                        medication.isTakenToday -> IOSMintGreen
+                        isOverdue -> CrimsonDanger
+                        else -> MaterialTheme.colorScheme.onSurface
+                    }
+                    Surface(
+                        shape = RoundedCornerShape(6.dp),
                         color = when {
-                            medication.isTakenToday -> IOSMintGreen
-                            isOverdue -> CrimsonDanger
-                            else -> IOSHealthCoral
-                        },
-                        fontWeight = FontWeight.Bold
-                    )
+                            medication.isTakenToday -> IOSMintGreen.copy(alpha = 0.11f)
+                            isOverdue -> CrimsonDanger.copy(alpha = 0.11f)
+                            else -> MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.85f)
+                        }
+                    ) {
+                        Text(
+                            text = if (medication.isTakenToday) {
+                                val timeSuffix = medication.lastTakenTime.takeIf { it.isNotBlank() }?.let { " $it" } ?: ""
+                                "今日${timeSuffix}已服"
+                            } else if (isOverdue) {
+                                "${medication.time} 超时"
+                            } else {
+                                medication.time
+                            },
+                            style = MaterialTheme.typography.labelSmall.copy(fontFamily = JetBrainsMonoFontFamily),
+                            color = timePillColor,
+                            fontWeight = FontWeight.Bold,
+                            fontSize = 10.sp,
+                            modifier = Modifier.padding(horizontal = 6.dp, vertical = 2.dp)
+                        )
+                    }
                 }
 
-                Spacer(modifier = Modifier.height(4.dp))
+                Spacer(modifier = Modifier.height(5.dp))
 
                 Row(
                     verticalAlignment = Alignment.CenterVertically,
                     horizontalArrangement = Arrangement.spacedBy(6.dp)
                 ) {
-                    // Tappable Dosage Pill Badge indicating dosage can be customized
+                    // Hairline-Bordered Tappable Dosage Badge
                     Surface(
                         onClick = onRowClick,
-                        color = IOSHealthCoral.copy(alpha = 0.11f),
+                        color = IOSHealthCoral.copy(alpha = 0.08f),
+                        border = BorderStroke(0.5.dp, IOSHealthCoral.copy(alpha = 0.25f)),
                         shape = RoundedCornerShape(6.dp),
                         modifier = Modifier.testTag("dosage_badge_${medication.id}")
                     ) {
@@ -655,7 +764,7 @@ fun IOSMedicationRow(
                                 style = MaterialTheme.typography.labelSmall,
                                 color = IOSHealthCoral,
                                 fontWeight = FontWeight.Bold,
-                                fontSize = 11.sp
+                                fontSize = 10.5.sp
                             )
                             Spacer(modifier = Modifier.width(3.dp))
                             Icon(
@@ -1002,10 +1111,11 @@ fun MedicationDetailSheetContent(
             }
         }
 
-        // iOS Grouped Key-Value Rows
+        // Editorial Grouped Key-Value Rows
         Surface(
             color = MaterialTheme.colorScheme.surface,
-            shape = RoundedCornerShape(14.dp),
+            shape = RoundedCornerShape(18.dp),
+            border = BorderStroke(0.75.dp, MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.85f)),
             modifier = Modifier.fillMaxWidth()
         ) {
             Column {
@@ -1029,7 +1139,8 @@ fun MedicationDetailSheetContent(
         // Clinical Note Grouped Card
         Surface(
             color = MaterialTheme.colorScheme.surface,
-            shape = RoundedCornerShape(14.dp),
+            shape = RoundedCornerShape(18.dp),
+            border = BorderStroke(0.75.dp, MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.85f)),
             modifier = Modifier.fillMaxWidth()
         ) {
             Column(modifier = Modifier.padding(16.dp)) {

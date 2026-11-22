@@ -65,9 +65,9 @@
 
 ## 技术栈与架构
 
-- **当前版本**：`v1.4.0` (`versionCode = 4`)
+- **当前版本**：`v1.5.0` (`versionCode = 5`)
 - **开发语言**：Kotlin
-- **UI 框架**：Jetpack Compose + Material 3（深度定制 Apple Health / iOS 26 珠光陶瓷与深曜石视觉体系、悬浮玻璃胶囊导航栏、环境微光卡片与零蓝色系高对比色彩：`#FF2D55` 珊瑚粉、`#2AC769` 薄荷绿、`#FF9500` 暖橙、`#9F51E8` 梅紫）
+- **UI 框架**：Jetpack Compose + Material 3（Editorial Swiss Clinical Luxury 60-30-10 视觉体系：暖石雪花白画布 `#F6F4F0`、深曜石精密仪表主卡 `#17161B`、建筑感悬浮瓷白导航底座与零蓝色系高对比点睛色：`#E53854` 胭脂珊瑚、`#149E63` 植物翡翠、`#D97706` 琥珀暖金、`#7E42D6` 无花果紫）
 - **本地持久化**：Android Jetpack Room Database (`AppDatabase` v2，含 `MIGRATION_1_2` 无损升级，Kotlin Coroutines & `StateFlow`)
 - **架构模式**：MVVM (`MedicationViewModel` + `MedicationRepository` + `MedicationDao` + `DrugInteractionChecker`)
 - **字体排版**：Plus Jakarta Sans（西文标题与正文）+ JetBrains Mono（剂量、时间与临床数据等宽对齐）
@@ -77,11 +77,11 @@
 ## 目录结构
 
 ```text
-├── MedMate.apk                                  # 最新编译生成的安装包 v1.4.0（可直接下载安装到手机）
-├── CHANGELOG.md                                 # 版本迭代更新日志 (v1.0.0 -> v1.4.0)
+├── MedMate.apk                                  # 最新编译生成的安装包 v1.5.0（可直接下载安装到手机）
+├── CHANGELOG.md                                 # 版本迭代更新日志 (v1.0.0 -> v1.5.0)
 ├── update.log                                   # 构建与版本变更日志文件
 ├── app/
-│   ├── build.gradle.kts                         # 应用模块 Gradle 配置 (versionName: "1.4.0", versionCode: 4)
+│   ├── build.gradle.kts                         # 应用模块 Gradle 配置 (versionName: "1.5.0", versionCode: 5)
 │   └── src/main/
 │       ├── AndroidManifest.xml                  # 应用清单与自适应图标配置
 │       ├── java/com/example/

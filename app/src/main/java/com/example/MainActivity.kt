@@ -11,6 +11,9 @@ import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
 import androidx.compose.animation.AnimatedContent
 import androidx.compose.animation.animateColorAsState
+import androidx.compose.animation.core.Spring
+import androidx.compose.animation.core.animateFloatAsState
+import androidx.compose.animation.core.spring
 import androidx.compose.animation.core.tween
 import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
@@ -19,6 +22,7 @@ import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.interaction.MutableInteractionSource
+import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.shape.CircleShape
@@ -34,8 +38,11 @@ import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.draw.drawBehind
+import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.testTag
@@ -71,6 +78,9 @@ import com.example.ui.theme.IOSMintGreen
 import com.example.ui.theme.IOSPlumPurple
 import com.example.ui.theme.IOSWarmOrange
 import com.example.ui.theme.MedMateTheme
+import com.example.ui.theme.ObsidianHeroElevated
+import com.example.ui.theme.ObsidianHeroSurface
+import com.example.ui.theme.ObsidianHeroTextPrimary
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 import java.time.LocalDate
@@ -439,33 +449,37 @@ fun MedMateApp(viewModel: MedicationViewModel) {
 }
 
 /**
- * Modern Floating Glassmorphic Capsule Bottom Navigation Dock
+ * Architectural Floating Porcelain Capsule Dock with High-Contrast Obsidian Active Pill
  */
 @Composable
 fun IOSTabBar(
     currentTab: Int,
     onSelectTab: (Int) -> Unit
 ) {
+    val isDark = isSystemInDarkTheme()
     Box(
         modifier = Modifier
             .fillMaxWidth()
             .background(Color.Transparent)
             .navigationBarsPadding()
-            .padding(horizontal = 16.dp, vertical = 10.dp),
+            .padding(horizontal = 18.dp, vertical = 10.dp),
         contentAlignment = Alignment.Center
     ) {
         Surface(
             modifier = Modifier.fillMaxWidth(),
-            shape = RoundedCornerShape(28.dp),
-            color = MaterialTheme.colorScheme.surface.copy(alpha = 0.96f),
-            border = BorderStroke(0.75.dp, MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.85f)),
-            shadowElevation = 10.dp
+            shape = RoundedCornerShape(30.dp),
+            color = if (isDark) ObsidianHeroSurface.copy(alpha = 0.96f) else Color.White.copy(alpha = 0.96f),
+            border = BorderStroke(
+                width = 0.85.dp,
+                color = if (isDark) Color.White.copy(alpha = 0.12f) else MaterialTheme.colorScheme.outlineVariant
+            ),
+            shadowElevation = 14.dp
         ) {
             Row(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .padding(horizontal = 8.dp, vertical = 6.dp),
-                horizontalArrangement = Arrangement.SpaceBetween,
+                    .padding(horizontal = 6.dp, vertical = 6.dp),
+                horizontalArrangement = Arrangement.spacedBy(4.dp),
                 verticalAlignment = Alignment.CenterVertically
             ) {
                 IOSTabBarItem(
@@ -519,43 +533,64 @@ private fun IOSTabBarItem(
     testTag: String,
     modifier: Modifier = Modifier
 ) {
-    val tint by animateColorAsState(
-        targetValue = if (selected) IOSHealthCoral else MaterialTheme.colorScheme.onSurfaceVariant,
-        animationSpec = tween(200),
-        label = "tab_tint"
+    val isDark = isSystemInDarkTheme()
+    val iconTint by animateColorAsState(
+        targetValue = if (selected) IOSHealthCoralGlow else MaterialTheme.colorScheme.onSurfaceVariant,
+        animationSpec = tween(220),
+        label = "tab_icon_tint"
+    )
+    val labelTint by animateColorAsState(
+        targetValue = if (selected) ObsidianHeroTextPrimary else MaterialTheme.colorScheme.onSurfaceVariant,
+        animationSpec = tween(220),
+        label = "tab_label_tint"
     )
     val pillBg by animateColorAsState(
-        targetValue = if (selected) IOSHealthCoral.copy(alpha = 0.12f) else Color.Transparent,
-        animationSpec = tween(200),
+        targetValue = when {
+            selected && isDark -> ObsidianHeroElevated
+            selected -> ObsidianHeroSurface
+            else -> Color.Transparent
+        },
+        animationSpec = tween(220),
         label = "tab_pill_bg"
     )
+    val iconScale by animateFloatAsState(
+        targetValue = if (selected) 1.08f else 1f,
+        animationSpec = spring(dampingRatio = Spring.DampingRatioMediumBouncy, stiffness = Spring.StiffnessMedium),
+        label = "tab_icon_scale"
+    )
+
     Column(
         horizontalAlignment = Alignment.CenterHorizontally,
         verticalArrangement = Arrangement.Center,
         modifier = modifier
             .defaultMinSize(minHeight = 48.dp)
-            .clip(RoundedCornerShape(22.dp))
+            .clip(RoundedCornerShape(24.dp))
             .background(pillBg)
             .clickable(
                 interactionSource = remember { MutableInteractionSource() },
                 indication = null,
                 onClick = onClick
             )
-            .padding(vertical = 6.dp)
+            .padding(vertical = 7.dp)
             .testTag(testTag)
     ) {
         Icon(
             imageVector = if (selected) activeIcon else inactiveIcon,
             contentDescription = label,
-            tint = tint,
-            modifier = Modifier.size(22.dp)
+            tint = iconTint,
+            modifier = Modifier
+                .size(21.dp)
+                .graphicsLayer {
+                    scaleX = iconScale
+                    scaleY = iconScale
+                }
         )
-        Spacer(modifier = Modifier.height(2.dp))
+        Spacer(modifier = Modifier.height(2.5.dp))
         Text(
             text = label,
             style = MaterialTheme.typography.labelSmall,
-            color = tint,
-            fontWeight = if (selected) FontWeight.ExtraBold else FontWeight.Medium,
+            color = labelTint,
+            fontWeight = if (selected) FontWeight.Bold else FontWeight.Medium,
             fontSize = 10.sp
         )
     }
@@ -611,16 +646,29 @@ fun TodayRegimenScreen(
     }
 
     LazyColumn(
-        modifier = Modifier.fillMaxSize(),
+        modifier = Modifier
+            .fillMaxSize()
+            .drawBehind {
+                // Soft Warm Studio Ambient Wash at top of canvas
+                drawCircle(
+                    brush = Brush.radialGradient(
+                        colors = listOf(IOSHealthCoral.copy(alpha = 0.06f), Color.Transparent),
+                        center = Offset(size.width * 0.85f, 40.dp.toPx()),
+                        radius = size.width * 0.72f
+                    ),
+                    center = Offset(size.width * 0.85f, 40.dp.toPx()),
+                    radius = size.width * 0.72f
+                )
+            },
         contentPadding = PaddingValues(bottom = 32.dp)
     ) {
-        // Authentic iOS Large Title Navigation Header
+        // Editorial Large Title Navigation Header
         item {
             Row(
                 modifier = Modifier
                     .fillMaxWidth()
                     .padding(horizontal = 16.dp)
-                    .padding(top = 12.dp, bottom = 6.dp),
+                    .padding(top = 14.dp, bottom = 8.dp),
                 horizontalArrangement = Arrangement.SpaceBetween,
                 verticalAlignment = Alignment.Bottom
             ) {
@@ -635,14 +683,14 @@ fun TodayRegimenScreen(
                         text = "今日用药",
                         style = MaterialTheme.typography.displayMedium.copy(
                             fontSize = 34.sp,
-                            letterSpacing = (-0.8).sp
+                            letterSpacing = (-0.9).sp
                         ),
                         fontWeight = FontWeight.ExtraBold,
                         color = MaterialTheme.colorScheme.onSurface
                     )
                 }
 
-                // iOS Top-Right Action Buttons: "管理/完成" Pill + Circular "+" Button
+                // Editorial Top-Right Action Buttons: "管理/完成" Hairline Pill + Luminous Rose "+" Button
                 Row(
                     horizontalArrangement = Arrangement.spacedBy(8.dp),
                     verticalAlignment = Alignment.CenterVertically
@@ -650,7 +698,12 @@ fun TodayRegimenScreen(
                     if (medications.isNotEmpty()) {
                         Surface(
                             onClick = { isManageMode = !isManageMode },
-                            color = if (isManageMode) IOSHealthCoral else MaterialTheme.colorScheme.surface,
+                            color = if (isManageMode) ObsidianHeroSurface else MaterialTheme.colorScheme.surface,
+                            border = BorderStroke(
+                                0.75.dp,
+                                if (isManageMode) ObsidianHeroSurface else MaterialTheme.colorScheme.outlineVariant
+                            ),
+                            shadowElevation = 1.5.dp,
                             shape = RoundedCornerShape(50),
                             modifier = Modifier
                                 .height(38.dp)
@@ -663,14 +716,14 @@ fun TodayRegimenScreen(
                                 Icon(
                                     imageVector = if (isManageMode) Icons.Rounded.Check else Icons.Rounded.EditNote,
                                     contentDescription = null,
-                                    tint = if (isManageMode) Color.White else IOSHealthCoral,
-                                    modifier = Modifier.size(18.dp)
+                                    tint = if (isManageMode) Color.White else MaterialTheme.colorScheme.onSurface,
+                                    modifier = Modifier.size(17.dp)
                                 )
                                 Spacer(modifier = Modifier.width(4.dp))
                                 Text(
                                     text = if (isManageMode) "完成" else "管理",
                                     style = MaterialTheme.typography.labelLarge,
-                                    color = if (isManageMode) Color.White else IOSHealthCoral,
+                                    color = if (isManageMode) Color.White else MaterialTheme.colorScheme.onSurface,
                                     fontWeight = FontWeight.Bold
                                 )
                             }

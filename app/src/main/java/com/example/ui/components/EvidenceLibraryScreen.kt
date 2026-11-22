@@ -21,6 +21,8 @@ import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.draw.drawBehind
+import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.SolidColor
@@ -39,6 +41,7 @@ import com.example.ui.theme.IOSMintGreen
 import com.example.ui.theme.IOSPlumPurple
 import com.example.ui.theme.IOSWarmOrange
 import com.example.ui.theme.JetBrainsMonoFontFamily
+import com.example.ui.theme.ObsidianHeroSurface
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -66,6 +69,17 @@ fun EvidenceLibraryScreen(
         modifier = Modifier
             .fillMaxSize()
             .background(MaterialTheme.colorScheme.background)
+            .drawBehind {
+                drawCircle(
+                    brush = Brush.radialGradient(
+                        colors = listOf(IOSPlumPurple.copy(alpha = 0.055f), Color.Transparent),
+                        center = Offset(size.width * 0.85f, 36.dp.toPx()),
+                        radius = size.width * 0.72f
+                    ),
+                    center = Offset(size.width * 0.85f, 36.dp.toPx()),
+                    radius = size.width * 0.72f
+                )
+            }
     ) {
         // iOS Large Title Header
         Column(
@@ -242,7 +256,7 @@ private fun CatalogDrugsSection(
             }
         }
 
-        // Category Pills with Per-Category Counts
+        // Editorial 60-30-10 Category Pills (Obsidian active / Porcelain hairline inactive)
         item {
             Row(
                 modifier = Modifier
@@ -255,7 +269,12 @@ private fun CatalogDrugsSection(
                     val count = if (cat == "全部") allDrugs.size else allDrugs.count { it.category == cat }
                     Surface(
                         onClick = { onCategoryChange(cat) },
-                        color = if (selected) IOSHealthCoral else MaterialTheme.colorScheme.surface,
+                        color = if (selected) ObsidianHeroSurface else MaterialTheme.colorScheme.surface,
+                        border = BorderStroke(
+                            0.75.dp,
+                            if (selected) ObsidianHeroSurface else MaterialTheme.colorScheme.outlineVariant
+                        ),
+                        shadowElevation = if (selected) 2.5.dp else 0.5.dp,
                         shape = RoundedCornerShape(20.dp)
                     ) {
                         Text(
@@ -461,7 +480,8 @@ private fun CatalogDrugIOSCard(
             // 3. Interactive Clinical Dosage & Timing Strip (Supports direct [-] / [+] adjustment!)
             Surface(
                 color = MaterialTheme.colorScheme.background,
-                shape = RoundedCornerShape(10.dp),
+                border = BorderStroke(0.6.dp, MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.8f)),
+                shape = RoundedCornerShape(12.dp),
                 modifier = Modifier.fillMaxWidth()
             ) {
                 Column(
