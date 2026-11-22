@@ -31,7 +31,7 @@ private val LightColorScheme = lightColorScheme(
     surfaceVariant = IOSSegmentTrack,
     onSurfaceVariant = IOSLabelSecondary,
     outline = IOSSeparator,
-    outlineVariant = Color(0xFFE5E5EA)
+    outlineVariant = Color(0xFFE4E6EE)
 )
 
 private val DarkColorScheme = darkColorScheme(
@@ -58,15 +58,15 @@ private val DarkColorScheme = darkColorScheme(
     surfaceVariant = IOSDarkElevatedSurface,
     onSurfaceVariant = IOSDarkLabelSecondary,
     outline = IOSDarkSeparator,
-    outlineVariant = IOSDarkSeparator
+    outlineVariant = Color(0xFF2A2C38)
 )
 
 val IOSShapes = Shapes(
-    extraSmall = RoundedCornerShape(8.dp),
-    small = RoundedCornerShape(10.dp),
-    medium = RoundedCornerShape(14.dp), // iOS standard insetGrouped corner radius
-    large = RoundedCornerShape(18.dp),
-    extraLarge = RoundedCornerShape(24.dp)
+    extraSmall = RoundedCornerShape(10.dp),
+    small = RoundedCornerShape(12.dp),
+    medium = RoundedCornerShape(18.dp),
+    large = RoundedCornerShape(22.dp),
+    extraLarge = RoundedCornerShape(28.dp)
 )
 
 @Composable

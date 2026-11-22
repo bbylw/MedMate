@@ -1,6 +1,7 @@
 package com.example.ui.components
 
 import androidx.compose.animation.AnimatedVisibility
+import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
@@ -17,7 +18,7 @@ import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
-import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
@@ -48,8 +49,10 @@ fun RegimenInteractionAlertBanner(
             .fillMaxWidth()
             .padding(horizontal = 16.dp, vertical = 4.dp)
             .testTag("interaction_alert_banner"),
-        shape = RoundedCornerShape(14.dp),
-        color = accentColor.copy(alpha = 0.09f)
+        shape = RoundedCornerShape(18.dp),
+        color = accentColor.copy(alpha = 0.08f),
+        border = BorderStroke(0.75.dp, accentColor.copy(alpha = 0.24f)),
+        shadowElevation = 1.dp
     ) {
         Column(
             modifier = Modifier
@@ -69,16 +72,23 @@ fun RegimenInteractionAlertBanner(
                 ) {
                     Box(
                         modifier = Modifier
-                            .size(32.dp)
-                            .clip(RoundedCornerShape(8.dp))
-                            .background(accentColor.copy(alpha = 0.16f)),
+                            .size(36.dp)
+                            .clip(RoundedCornerShape(11.dp))
+                            .background(
+                                Brush.linearGradient(
+                                    colors = listOf(
+                                        accentColor.copy(alpha = 0.22f),
+                                        accentColor.copy(alpha = 0.10f)
+                                    )
+                                )
+                            ),
                         contentAlignment = Alignment.Center
                     ) {
                         Icon(
                             imageVector = if (hasHighRisk) Icons.Rounded.GppMaybe else Icons.Rounded.WarningAmber,
                             contentDescription = "循证用药安全警示",
                             tint = accentColor,
-                            modifier = Modifier.size(18.dp)
+                            modifier = Modifier.size(19.dp)
                         )
                     }
                     Spacer(modifier = Modifier.width(10.dp))
@@ -146,8 +156,14 @@ fun ClinicalSafetySummaryCard(
         modifier = modifier
             .fillMaxWidth()
             .testTag("clinical_safety_summary_card"),
-        shape = RoundedCornerShape(14.dp),
-        color = MaterialTheme.colorScheme.surface
+        shape = RoundedCornerShape(18.dp),
+        color = MaterialTheme.colorScheme.surface,
+        border = BorderStroke(
+            0.75.dp,
+            if (isSafe) MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.7f)
+            else statusColor.copy(alpha = 0.28f)
+        ),
+        shadowElevation = 1.5.dp
     ) {
         Column(
             modifier = Modifier
@@ -160,12 +176,22 @@ fun ClinicalSafetySummaryCard(
                 verticalAlignment = Alignment.CenterVertically,
                 horizontalArrangement = Arrangement.SpaceBetween
             ) {
-                Row(verticalAlignment = Alignment.CenterVertically) {
+                Row(
+                    verticalAlignment = Alignment.CenterVertically,
+                    modifier = Modifier.weight(1f)
+                ) {
                     Box(
                         modifier = Modifier
-                            .size(34.dp)
-                            .clip(RoundedCornerShape(10.dp))
-                            .background(statusColor.copy(alpha = 0.14f)),
+                            .size(38.dp)
+                            .clip(RoundedCornerShape(12.dp))
+                            .background(
+                                Brush.linearGradient(
+                                    colors = listOf(
+                                        statusColor.copy(alpha = 0.22f),
+                                        statusColor.copy(alpha = 0.09f)
+                                    )
+                                )
+                            ),
                         contentAlignment = Alignment.Center
                     ) {
                         Icon(
@@ -220,8 +246,9 @@ private fun InteractionAlertItemCard(alert: DrugInteractionAlert) {
     val badgeText = if (alert.severity == InteractionSeverity.HIGH) "高危冲突" else "联用提示"
 
     Surface(
-        shape = RoundedCornerShape(12.dp),
+        shape = RoundedCornerShape(14.dp),
         color = MaterialTheme.colorScheme.surface,
+        border = BorderStroke(0.5.dp, badgeColor.copy(alpha = 0.22f)),
         modifier = Modifier.fillMaxWidth()
     ) {
         Column(

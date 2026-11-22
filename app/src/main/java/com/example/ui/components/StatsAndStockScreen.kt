@@ -1,6 +1,7 @@
 package com.example.ui.components
 
 import android.content.Context
+import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
@@ -18,7 +19,10 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.geometry.CornerRadius
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.geometry.Size
+import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.PathEffect
+import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.text.font.FontWeight
@@ -29,6 +33,8 @@ import com.example.data.DrugInteractionChecker
 import com.example.data.Medication
 import com.example.ui.theme.CrimsonDanger
 import com.example.ui.theme.IOSHealthCoral
+import com.example.ui.theme.IOSHealthCoralGlow
+import com.example.ui.theme.IOSMintGlow
 import com.example.ui.theme.IOSMintGreen
 import com.example.ui.theme.IOSPlumPurple
 import com.example.ui.theme.IOSWarmOrange
@@ -135,7 +141,7 @@ fun StatsAndStockScreen(
             }
         }
 
-        // Apple Health Style 3-Column Highlights Row
+        // Modern 3-Column Highlights Row with Micro-Icon Badges
         item {
             Row(
                 modifier = Modifier.fillMaxWidth(),
@@ -143,6 +149,7 @@ fun StatsAndStockScreen(
             ) {
                 IOSHighlightCard(
                     modifier = Modifier.weight(1f),
+                    icon = Icons.Rounded.CheckCircle,
                     category = "今日完成率",
                     value = "$todayRate%",
                     subtitle = "$takenCount/$totalCount 剂已记录",
@@ -150,6 +157,7 @@ fun StatsAndStockScreen(
                 )
                 IOSHighlightCard(
                     modifier = Modifier.weight(1f),
+                    icon = Icons.Rounded.LocalFireDepartment,
                     category = "连续达标",
                     value = "${medications.maxOfOrNull { it.streakDays } ?: 0}天",
                     subtitle = "稳态血药浓度",
@@ -157,6 +165,7 @@ fun StatsAndStockScreen(
                 )
                 IOSHighlightCard(
                     modifier = Modifier.weight(1f),
+                    icon = Icons.Rounded.Inventory2,
                     category = "购药提醒",
                     value = "${lowStockMeds.size}项",
                     subtitle = if (lowStockMeds.isEmpty()) "库存充足" else "余量不足7剂",
@@ -227,8 +236,10 @@ fun StatsAndStockScreen(
             item {
                 Surface(
                     modifier = Modifier.fillMaxWidth(),
-                    shape = RoundedCornerShape(14.dp),
-                    color = MaterialTheme.colorScheme.surface
+                    shape = RoundedCornerShape(18.dp),
+                    color = MaterialTheme.colorScheme.surface,
+                    border = BorderStroke(0.75.dp, MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.8f)),
+                    shadowElevation = 1.5.dp
                 ) {
                     Column {
                         medications.forEachIndexed { index, med ->
@@ -253,6 +264,7 @@ fun StatsAndStockScreen(
 @Composable
 private fun IOSHighlightCard(
     modifier: Modifier = Modifier,
+    icon: ImageVector,
     category: String,
     value: String,
     subtitle: String,
@@ -260,17 +272,37 @@ private fun IOSHighlightCard(
 ) {
     Surface(
         modifier = modifier,
-        shape = RoundedCornerShape(14.dp),
-        color = MaterialTheme.colorScheme.surface
+        shape = RoundedCornerShape(18.dp),
+        color = MaterialTheme.colorScheme.surface,
+        border = BorderStroke(0.75.dp, accentColor.copy(alpha = 0.20f)),
+        shadowElevation = 1.5.dp
     ) {
-        Column(modifier = Modifier.padding(12.dp)) {
-            Text(
-                text = category,
-                style = MaterialTheme.typography.labelSmall,
-                color = accentColor,
-                fontWeight = FontWeight.Bold
-            )
-            Spacer(modifier = Modifier.height(6.dp))
+        Column(modifier = Modifier.padding(13.dp)) {
+            Row(verticalAlignment = Alignment.CenterVertically) {
+                Box(
+                    modifier = Modifier
+                        .size(22.dp)
+                        .clip(RoundedCornerShape(6.dp))
+                        .background(accentColor.copy(alpha = 0.14f)),
+                    contentAlignment = Alignment.Center
+                ) {
+                    Icon(
+                        imageVector = icon,
+                        contentDescription = null,
+                        tint = accentColor,
+                        modifier = Modifier.size(13.dp)
+                    )
+                }
+                Spacer(modifier = Modifier.width(5.dp))
+                Text(
+                    text = category,
+                    style = MaterialTheme.typography.labelSmall,
+                    color = accentColor,
+                    fontWeight = FontWeight.Bold,
+                    maxLines = 1
+                )
+            }
+            Spacer(modifier = Modifier.height(8.dp))
             Text(
                 text = value,
                 style = MaterialTheme.typography.headlineMedium.copy(fontFamily = JetBrainsMonoFontFamily),
@@ -329,8 +361,10 @@ private fun WeeklyAdherenceIOSCard(
 
     Surface(
         modifier = Modifier.fillMaxWidth(),
-        shape = RoundedCornerShape(14.dp),
-        color = MaterialTheme.colorScheme.surface
+        shape = RoundedCornerShape(18.dp),
+        color = MaterialTheme.colorScheme.surface,
+        border = BorderStroke(0.75.dp, MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.8f)),
+        shadowElevation = 2.dp
     ) {
         Column(modifier = Modifier.padding(16.dp)) {
             Row(
@@ -339,13 +373,21 @@ private fun WeeklyAdherenceIOSCard(
                 verticalAlignment = Alignment.CenterVertically
             ) {
                 Row(verticalAlignment = Alignment.CenterVertically) {
-                    Icon(
-                        imageVector = Icons.Rounded.Favorite,
-                        contentDescription = null,
-                        tint = IOSHealthCoral,
-                        modifier = Modifier.size(16.dp)
-                    )
-                    Spacer(modifier = Modifier.width(6.dp))
+                    Box(
+                        modifier = Modifier
+                            .size(24.dp)
+                            .clip(RoundedCornerShape(7.dp))
+                            .background(Brush.linearGradient(listOf(IOSHealthCoral, IOSHealthCoralGlow))),
+                        contentAlignment = Alignment.Center
+                    ) {
+                        Icon(
+                            imageVector = Icons.Rounded.BarChart,
+                            contentDescription = null,
+                            tint = Color.White,
+                            modifier = Modifier.size(14.dp)
+                        )
+                    }
+                    Spacer(modifier = Modifier.width(8.dp))
                     Text(
                         text = "近 7 日用药依从趋势",
                         style = MaterialTheme.typography.labelLarge,
@@ -363,41 +405,53 @@ private fun WeeklyAdherenceIOSCard(
 
             Spacer(modifier = Modifier.height(16.dp))
 
+            val trackColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.7f)
+            val guideLineColor = MaterialTheme.colorScheme.outline.copy(alpha = 0.35f)
             Canvas(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .height(110.dp)
+                    .height(116.dp)
             ) {
                 val barCount = nullableRates.size
                 val slotWidth = size.width / barCount
-                val barWidth = min(slotWidth * 0.42f, 24.dp.toPx())
+                val barWidth = min(slotWidth * 0.44f, 24.dp.toPx())
                 val maxBarHeight = size.height - 6.dp.toPx()
+
+                // Subtle dashed 50% reference line
+                val dashEffect = PathEffect.dashPathEffect(floatArrayOf(8f, 8f), 0f)
+                drawLine(
+                    color = guideLineColor,
+                    start = Offset(0f, maxBarHeight * 0.5f),
+                    end = Offset(size.width, maxBarHeight * 0.5f),
+                    strokeWidth = 1.dp.toPx(),
+                    pathEffect = dashEffect
+                )
 
                 nullableRates.forEachIndexed { index, rate ->
                     val x = index * slotWidth + (slotWidth - barWidth) / 2f
                     drawRoundRect(
-                        color = Color(0xFFE5E5EA).copy(alpha = 0.6f),
+                        color = trackColor,
                         topLeft = Offset(x, 0f),
                         size = Size(barWidth, maxBarHeight),
-                        cornerRadius = CornerRadius(6.dp.toPx(), 6.dp.toPx())
+                        cornerRadius = CornerRadius(7.dp.toPx(), 7.dp.toPx())
                     )
                     if (rate != null) {
                         val barHeight = if (rate == 0) {
                             6.dp.toPx()
                         } else {
-                            (rate.coerceIn(8, 100) / 100f) * maxBarHeight
+                            (rate.coerceIn(10, 100) / 100f) * maxBarHeight
                         }
-                        val barColor = when {
-                            index == barCount - 1 -> IOSHealthCoral
-                            rate >= 90 -> IOSMintGreen
-                            rate > 0 -> IOSWarmOrange
-                            else -> Color(0xFFC7C7CC)
+                        val barBrush = when {
+                            index == barCount - 1 -> Brush.verticalGradient(listOf(IOSHealthCoralGlow, IOSHealthCoral))
+                            rate >= 90 -> Brush.verticalGradient(listOf(IOSMintGlow, IOSMintGreen))
+                            rate > 0 -> Brush.verticalGradient(listOf(Color(0xFFFFB340), IOSWarmOrange))
+                            else -> Brush.verticalGradient(listOf(Color(0xFFC7C7CC), Color(0xFFA8ABB6)))
                         }
                         drawRoundRect(
-                            color = barColor,
+                            brush = barBrush,
                             topLeft = Offset(x, maxBarHeight - barHeight),
                             size = Size(barWidth, barHeight),
-                            cornerRadius = CornerRadius(6.dp.toPx(), 6.dp.toPx())
+                            cornerRadius = CornerRadius(7.dp.toPx(), 7.dp.toPx())
                         )
                     }
                 }
@@ -480,6 +534,23 @@ private fun IOSStockRow(
                     color = stockColor,
                     fontWeight = FontWeight.Medium
                 )
+                Spacer(modifier = Modifier.height(5.dp))
+                val stockFraction = (medication.stockCount.coerceIn(0, 28) / 28f)
+                Box(
+                    modifier = Modifier
+                        .fillMaxWidth(0.85f)
+                        .height(4.dp)
+                        .clip(RoundedCornerShape(50))
+                        .background(MaterialTheme.colorScheme.surfaceVariant)
+                ) {
+                    Box(
+                        modifier = Modifier
+                            .fillMaxHeight()
+                            .fillMaxWidth(stockFraction.coerceAtLeast(0.05f))
+                            .clip(RoundedCornerShape(50))
+                            .background(stockColor)
+                    )
+                }
             }
 
             Row(

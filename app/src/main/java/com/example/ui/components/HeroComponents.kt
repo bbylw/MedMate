@@ -24,6 +24,7 @@ import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.draw.drawBehind
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.geometry.Size
 import androidx.compose.ui.graphics.Brush
@@ -31,6 +32,7 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.SolidColor
 import androidx.compose.ui.graphics.StrokeCap
 import androidx.compose.ui.graphics.drawscope.Stroke
+import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.text.font.FontWeight
@@ -46,6 +48,8 @@ import com.example.ui.theme.AmberWarning
 import com.example.ui.theme.CrimsonDanger
 import com.example.ui.theme.EmeraldSafe
 import com.example.ui.theme.IOSHealthCoral
+import com.example.ui.theme.IOSHealthCoralGlow
+import com.example.ui.theme.IOSMintGlow
 import com.example.ui.theme.IOSMintGreen
 import com.example.ui.theme.IOSPlumPurple
 import com.example.ui.theme.IOSWarmOrange
@@ -78,7 +82,7 @@ fun formatDurationMinutes(minutes: Int): String {
 }
 
 /**
- * Authentic iOS UISegmentedControl component
+ * Modern Refined Pill Segmented Control
  */
 @Composable
 fun IOSSegmentedControl(
@@ -89,15 +93,16 @@ fun IOSSegmentedControl(
     tagPrefix: String = "ios_segment"
 ) {
     Surface(
-        color = MaterialTheme.colorScheme.surfaceVariant,
-        shape = RoundedCornerShape(9.dp),
+        color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.85f),
+        shape = RoundedCornerShape(13.dp),
+        border = BorderStroke(0.5.dp, MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.7f)),
         modifier = modifier.fillMaxWidth()
     ) {
         Row(
             modifier = Modifier
                 .fillMaxWidth()
-                .padding(2.5.dp),
-            horizontalArrangement = Arrangement.spacedBy(2.dp)
+                .padding(3.dp),
+            horizontalArrangement = Arrangement.spacedBy(3.dp)
         ) {
             options.forEachIndexed { index, label ->
                 val selected = selectedIndex == index
@@ -106,16 +111,16 @@ fun IOSSegmentedControl(
                     modifier = Modifier
                         .weight(1f)
                         .testTag("${tagPrefix}_$index"),
-                    shape = RoundedCornerShape(7.dp),
+                    shape = RoundedCornerShape(10.dp),
                     color = if (selected) MaterialTheme.colorScheme.surface else Color.Transparent,
-                    shadowElevation = if (selected) 2.dp else 0.dp
+                    shadowElevation = if (selected) 2.5.dp else 0.dp
                 ) {
                     Text(
                         text = label,
                         style = MaterialTheme.typography.labelLarge,
                         fontWeight = if (selected) FontWeight.Bold else FontWeight.Medium,
                         color = if (selected) MaterialTheme.colorScheme.onSurface else MaterialTheme.colorScheme.onSurfaceVariant,
-                        modifier = Modifier.padding(vertical = 7.dp),
+                        modifier = Modifier.padding(vertical = 8.dp),
                         textAlign = TextAlign.Center,
                         fontSize = 13.sp,
                         maxLines = 1,
@@ -159,14 +164,35 @@ fun EvidenceHeroBanner(
             .fillMaxWidth()
             .padding(horizontal = 16.dp, vertical = 6.dp)
             .testTag("evidence_hero_card"),
-        shape = RoundedCornerShape(16.dp),
+        shape = RoundedCornerShape(22.dp),
         color = MaterialTheme.colorScheme.surface,
-        shadowElevation = 0.5.dp
+        border = BorderStroke(0.75.dp, MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.85f)),
+        shadowElevation = 3.dp
     ) {
         Column(
             modifier = Modifier
                 .fillMaxWidth()
-                .padding(16.dp)
+                .drawBehind {
+                    drawCircle(
+                        brush = Brush.radialGradient(
+                            colors = listOf(IOSHealthCoral.copy(alpha = 0.10f), Color.Transparent),
+                            center = Offset(size.width * 0.88f, size.height * 0.25f),
+                            radius = size.width * 0.55f
+                        ),
+                        center = Offset(size.width * 0.88f, size.height * 0.25f),
+                        radius = size.width * 0.55f
+                    )
+                    drawCircle(
+                        brush = Brush.radialGradient(
+                            colors = listOf(IOSMintGreen.copy(alpha = 0.08f), Color.Transparent),
+                            center = Offset(size.width * 0.12f, size.height * 0.85f),
+                            radius = size.width * 0.45f
+                        ),
+                        center = Offset(size.width * 0.12f, size.height * 0.85f),
+                        radius = size.width * 0.45f
+                    )
+                }
+                .padding(18.dp)
         ) {
             // Top Apple Health Category Row
             Row(
@@ -175,41 +201,55 @@ fun EvidenceHeroBanner(
                 verticalAlignment = Alignment.CenterVertically
             ) {
                 Row(verticalAlignment = Alignment.CenterVertically) {
-                    Icon(
-                        imageVector = Icons.Rounded.Favorite,
-                        contentDescription = null,
-                        tint = IOSHealthCoral,
-                        modifier = Modifier.size(16.dp)
-                    )
-                    Spacer(modifier = Modifier.width(6.dp))
+                    Box(
+                        modifier = Modifier
+                            .size(26.dp)
+                            .clip(RoundedCornerShape(8.dp))
+                            .background(
+                                Brush.linearGradient(listOf(IOSHealthCoral, IOSHealthCoralGlow))
+                            ),
+                        contentAlignment = Alignment.Center
+                    ) {
+                        Icon(
+                            imageVector = Icons.Rounded.Favorite,
+                            contentDescription = null,
+                            tint = Color.White,
+                            modifier = Modifier.size(14.dp)
+                        )
+                    }
+                    Spacer(modifier = Modifier.width(8.dp))
                     Text(
                         text = "循证用药依从度",
                         style = MaterialTheme.typography.labelLarge,
                         color = IOSHealthCoral,
-                        fontWeight = FontWeight.Bold
+                        fontWeight = FontWeight.ExtraBold
                     )
                 }
 
-                Row(
-                    verticalAlignment = Alignment.CenterVertically,
-                    modifier = Modifier
-                        .clip(RoundedCornerShape(8.dp))
-                        .clickable { onShowEbmManifesto() }
-                        .padding(horizontal = 4.dp, vertical = 2.dp)
-                        .testTag("ebm_manifesto_badge")
+                Surface(
+                    onClick = onShowEbmManifesto,
+                    shape = RoundedCornerShape(50),
+                    color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.65f),
+                    modifier = Modifier.testTag("ebm_manifesto_badge")
                 ) {
-                    Text(
-                        text = "拥抱循证，拒绝中医",
-                        style = MaterialTheme.typography.labelSmall,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant,
-                        fontWeight = FontWeight.SemiBold
-                    )
-                    Icon(
-                        imageVector = Icons.Rounded.ChevronRight,
-                        contentDescription = null,
-                        tint = MaterialTheme.colorScheme.onSurfaceVariant,
-                        modifier = Modifier.size(16.dp)
-                    )
+                    Row(
+                        verticalAlignment = Alignment.CenterVertically,
+                        modifier = Modifier.padding(start = 10.dp, end = 6.dp, top = 4.dp, bottom = 4.dp)
+                    ) {
+                        Text(
+                            text = "拥抱循证，拒绝中医",
+                            style = MaterialTheme.typography.labelSmall,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                            fontWeight = FontWeight.SemiBold,
+                            fontSize = 11.sp
+                        )
+                        Icon(
+                            imageVector = Icons.Rounded.ChevronRight,
+                            contentDescription = null,
+                            tint = MaterialTheme.colorScheme.onSurfaceVariant,
+                            modifier = Modifier.size(14.dp)
+                        )
+                    }
                 }
             }
 
@@ -306,21 +346,21 @@ fun EvidenceHeroBanner(
 
                 Spacer(modifier = Modifier.width(16.dp))
 
-                // Apple Fitness / Health Dual Concentric Rings (Coral Outer + Mint Inner)
+                // Upgraded Luminous Dual Concentric Health Rings (96.dp)
                 Box(
-                    modifier = Modifier.size(84.dp),
+                    modifier = Modifier.size(96.dp),
                     contentAlignment = Alignment.Center
                 ) {
                     Canvas(modifier = Modifier.fillMaxSize()) {
-                        val outerStroke = 9.dp.toPx()
-                        val innerStroke = 8.dp.toPx()
-                        val gap = 3.dp.toPx()
+                        val outerStroke = 10.dp.toPx()
+                        val innerStroke = 8.5.dp.toPx()
+                        val gap = 3.5.dp.toPx()
 
-                        // Outer Ring: Daily Adherence (Apple Health Coral Red)
+                        // Outer Ring: Daily Adherence (Apple Health Coral Gradient)
                         val outerDia = size.minDimension - outerStroke
                         val outerTopLeft = Offset(outerStroke / 2f, outerStroke / 2f)
                         drawArc(
-                            color = IOSHealthCoral.copy(alpha = 0.16f),
+                            color = IOSHealthCoral.copy(alpha = 0.14f),
                             startAngle = -90f,
                             sweepAngle = 360f,
                             useCenter = false,
@@ -331,9 +371,9 @@ fun EvidenceHeroBanner(
                         drawArc(
                             brush = Brush.sweepGradient(
                                 listOf(
-                                    Color(0xFFFF2D55),
-                                    Color(0xFFFF6482),
-                                    Color(0xFFFF2D55)
+                                    IOSHealthCoral,
+                                    IOSHealthCoralGlow,
+                                    IOSHealthCoral
                                 )
                             ),
                             startAngle = -90f,
@@ -344,12 +384,12 @@ fun EvidenceHeroBanner(
                             style = Stroke(width = outerStroke, cap = StrokeCap.Round)
                         )
 
-                        // Inner Ring: Streak Consistency (Apple Mint Green)
+                        // Inner Ring: Streak Consistency (Mint Emerald Gradient)
                         val inset = outerStroke + gap + innerStroke / 2f
                         val innerDia = size.minDimension - inset * 2f
                         val innerTopLeft = Offset(inset, inset)
                         drawArc(
-                            color = IOSMintGreen.copy(alpha = 0.16f),
+                            color = IOSMintGreen.copy(alpha = 0.14f),
                             startAngle = -90f,
                             sweepAngle = 360f,
                             useCenter = false,
@@ -358,7 +398,13 @@ fun EvidenceHeroBanner(
                             style = Stroke(width = innerStroke, cap = StrokeCap.Round)
                         )
                         drawArc(
-                            color = IOSMintGreen,
+                            brush = Brush.sweepGradient(
+                                listOf(
+                                    IOSMintGreen,
+                                    IOSMintGlow,
+                                    IOSMintGreen
+                                )
+                            ),
                             startAngle = -90f,
                             sweepAngle = 360f * streakProgress.coerceAtLeast(0.08f),
                             useCenter = false,
@@ -367,15 +413,23 @@ fun EvidenceHeroBanner(
                             style = Stroke(width = innerStroke, cap = StrokeCap.Round)
                         )
                     }
-                    Text(
-                        text = "${(animatedProgress * 100).toInt()}%",
-                        style = MaterialTheme.typography.labelMedium.copy(
-                            fontFamily = JetBrainsMonoFontFamily,
-                            fontWeight = FontWeight.Bold,
-                            fontSize = 12.sp
-                        ),
-                        color = MaterialTheme.colorScheme.onSurface
-                    )
+                    Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                        Text(
+                            text = "${(animatedProgress * 100).toInt()}%",
+                            style = MaterialTheme.typography.titleSmall.copy(
+                                fontFamily = JetBrainsMonoFontFamily,
+                                fontWeight = FontWeight.ExtraBold,
+                                fontSize = 15.sp
+                            ),
+                            color = MaterialTheme.colorScheme.onSurface
+                        )
+                        Text(
+                            text = "达标率",
+                            style = MaterialTheme.typography.labelSmall,
+                            fontSize = 9.sp,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant
+                        )
+                    }
                 }
             }
 
@@ -468,18 +522,26 @@ fun IOSMedicationRow(
     val accentColor = Color(medication.color)
     val isLowStock = medication.stockCount <= 7
     val isOverdue = !medication.isTakenToday && timeStringToMinutes(medication.time) < currentMinutesOfDay
+    val checkScale by animateFloatAsState(
+        targetValue = if (medication.isTakenToday) 1.06f else 1f,
+        animationSpec = spring(dampingRatio = Spring.DampingRatioMediumBouncy, stiffness = Spring.StiffnessMedium),
+        label = "check_scale"
+    )
 
     Column(
         modifier = Modifier
             .fillMaxWidth()
-            .background(MaterialTheme.colorScheme.surface)
+            .background(
+                if (medication.isTakenToday) IOSMintGreen.copy(alpha = 0.04f)
+                else MaterialTheme.colorScheme.surface
+            )
             .clickable { onRowClick() }
             .testTag("med_card_${medication.id}")
     ) {
         Row(
             modifier = Modifier
                 .fillMaxWidth()
-                .padding(horizontal = 14.dp, vertical = 13.dp),
+                .padding(horizontal = 14.dp, vertical = 14.dp),
             verticalAlignment = Alignment.CenterVertically
         ) {
             if (isManageMode) {
@@ -503,14 +565,24 @@ fun IOSMedicationRow(
                 Spacer(modifier = Modifier.width(10.dp))
             }
 
-            // iOS Squircle App-Icon Style Pill Badge
+            // Modern Soft-Gradient Squircle Pill Badge
             Box(
                 modifier = Modifier
-                    .size(40.dp)
-                    .clip(RoundedCornerShape(10.dp))
+                    .size(44.dp)
+                    .clip(RoundedCornerShape(13.dp))
                     .background(
-                        if (medication.isTakenToday) IOSMintGreen.copy(alpha = 0.14f)
-                        else accentColor.copy(alpha = 0.14f)
+                        Brush.linearGradient(
+                            colors = if (medication.isTakenToday) {
+                                listOf(IOSMintGreen.copy(alpha = 0.20f), IOSMintGlow.copy(alpha = 0.10f))
+                            } else {
+                                listOf(accentColor.copy(alpha = 0.18f), accentColor.copy(alpha = 0.08f))
+                            }
+                        )
+                    )
+                    .border(
+                        width = 0.75.dp,
+                        color = if (medication.isTakenToday) IOSMintGreen.copy(alpha = 0.25f) else accentColor.copy(alpha = 0.22f),
+                        shape = RoundedCornerShape(13.dp)
                     ),
                 contentAlignment = Alignment.Center
             ) {
@@ -677,33 +749,48 @@ fun IOSMedicationRow(
 
                 Spacer(modifier = Modifier.width(4.dp))
 
-                // Authentic iOS Reminders / Medications Circular Check Button
+                // Spring-animated Circular Check Button with 48dp accessible hit area
                 Box(
                     modifier = Modifier
-                        .size(32.dp)
+                        .size(44.dp)
                         .clip(CircleShape)
-                        .background(
-                            if (medication.isTakenToday) IOSMintGreen else Color.Transparent
-                        )
-                        .border(
-                            width = if (medication.isTakenToday) 0.dp else 1.8.dp,
-                            color = if (medication.isTakenToday) Color.Transparent else MaterialTheme.colorScheme.outline,
-                            shape = CircleShape
-                        )
                         .clickable { onToggleTaken() }
                         .testTag("toggle_med_${medication.id}"),
                     contentAlignment = Alignment.Center
                 ) {
-                    AnimatedContent(targetState = medication.isTakenToday, label = "ios_check") { taken ->
-                        if (taken) {
-                            Icon(
-                                imageVector = Icons.Rounded.Check,
-                                contentDescription = "已服用",
-                                tint = Color.White,
-                                modifier = Modifier.size(18.dp)
+                    Box(
+                        modifier = Modifier
+                            .size(32.dp)
+                            .graphicsLayer {
+                                scaleX = checkScale
+                                scaleY = checkScale
+                            }
+                            .clip(CircleShape)
+                            .background(
+                                if (medication.isTakenToday) {
+                                    Brush.linearGradient(listOf(IOSMintGreen, IOSMintGlow))
+                                } else {
+                                    Brush.linearGradient(listOf(Color.Transparent, Color.Transparent))
+                                }
                             )
-                        } else {
-                            Spacer(modifier = Modifier.size(18.dp))
+                            .border(
+                                width = if (medication.isTakenToday) 0.dp else 2.dp,
+                                color = if (medication.isTakenToday) Color.Transparent else MaterialTheme.colorScheme.outline,
+                                shape = CircleShape
+                            ),
+                        contentAlignment = Alignment.Center
+                    ) {
+                        AnimatedContent(targetState = medication.isTakenToday, label = "ios_check") { taken ->
+                            if (taken) {
+                                Icon(
+                                    imageVector = Icons.Rounded.Check,
+                                    contentDescription = "已服用",
+                                    tint = Color.White,
+                                    modifier = Modifier.size(18.dp)
+                                )
+                            } else {
+                                Spacer(modifier = Modifier.size(18.dp))
+                            }
                         }
                     }
                 }

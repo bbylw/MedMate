@@ -10,6 +10,12 @@ import androidx.activity.compose.BackHandler
 import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
 import androidx.compose.animation.AnimatedContent
+import androidx.compose.animation.animateColorAsState
+import androidx.compose.animation.core.tween
+import androidx.compose.animation.fadeIn
+import androidx.compose.animation.fadeOut
+import androidx.compose.animation.togetherWith
+import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.interaction.MutableInteractionSource
@@ -28,6 +34,7 @@ import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.platform.LocalContext
@@ -59,7 +66,10 @@ import com.example.ui.components.RegimenInteractionAlertBanner
 import com.example.ui.components.StatsAndStockScreen
 import com.example.ui.theme.CrimsonDanger
 import com.example.ui.theme.IOSHealthCoral
+import com.example.ui.theme.IOSHealthCoralGlow
 import com.example.ui.theme.IOSMintGreen
+import com.example.ui.theme.IOSPlumPurple
+import com.example.ui.theme.IOSWarmOrange
 import com.example.ui.theme.MedMateTheme
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
@@ -233,7 +243,13 @@ fun MedMateApp(viewModel: MedicationViewModel) {
                 .fillMaxSize()
                 .padding(innerPadding)
         ) {
-            AnimatedContent(targetState = currentTab, label = "ios_tab_switch") { tab ->
+            AnimatedContent(
+                targetState = currentTab,
+                transitionSpec = {
+                    fadeIn(animationSpec = tween(220)) togetherWith fadeOut(animationSpec = tween(140))
+                },
+                label = "ios_tab_switch"
+            ) { tab ->
                 when (tab) {
                     0 -> TodayRegimenScreen(
                         medications = medications,
@@ -423,62 +439,72 @@ fun MedMateApp(viewModel: MedicationViewModel) {
 }
 
 /**
- * Authentic iOS UITabBar with 0.5.dp top hairline border and Apple Health Coral tint
+ * Modern Floating Glassmorphic Capsule Bottom Navigation Dock
  */
 @Composable
 fun IOSTabBar(
     currentTab: Int,
     onSelectTab: (Int) -> Unit
 ) {
-    Column(
+    Box(
         modifier = Modifier
             .fillMaxWidth()
-            .background(MaterialTheme.colorScheme.surface)
+            .background(Color.Transparent)
             .navigationBarsPadding()
+            .padding(horizontal = 16.dp, vertical = 10.dp),
+        contentAlignment = Alignment.Center
     ) {
-        HorizontalDivider(
-            thickness = 0.5.dp,
-            color = MaterialTheme.colorScheme.outline.copy(alpha = 0.55f)
-        )
-        Row(
-            modifier = Modifier
-                .fillMaxWidth()
-                .height(54.dp),
-            horizontalArrangement = Arrangement.SpaceAround,
-            verticalAlignment = Alignment.CenterVertically
+        Surface(
+            modifier = Modifier.fillMaxWidth(),
+            shape = RoundedCornerShape(28.dp),
+            color = MaterialTheme.colorScheme.surface.copy(alpha = 0.96f),
+            border = BorderStroke(0.75.dp, MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.85f)),
+            shadowElevation = 10.dp
         ) {
-            IOSTabBarItem(
-                selected = currentTab == 0,
-                label = "今日用药",
-                activeIcon = Icons.Rounded.Favorite,
-                inactiveIcon = Icons.Rounded.FavoriteBorder,
-                onClick = { onSelectTab(0) },
-                testTag = "nav_tab_today"
-            )
-            IOSTabBarItem(
-                selected = currentTab == 1,
-                label = "循证药典",
-                activeIcon = Icons.AutoMirrored.Rounded.MenuBook,
-                inactiveIcon = Icons.AutoMirrored.Outlined.MenuBook,
-                onClick = { onSelectTab(1) },
-                testTag = "nav_tab_library"
-            )
-            IOSTabBarItem(
-                selected = currentTab == 2,
-                label = "健康饮食",
-                activeIcon = Icons.Rounded.Restaurant,
-                inactiveIcon = Icons.Rounded.RestaurantMenu,
-                onClick = { onSelectTab(2) },
-                testTag = "nav_tab_diet"
-            )
-            IOSTabBarItem(
-                selected = currentTab == 3,
-                label = "药箱统计",
-                activeIcon = Icons.Rounded.Analytics,
-                inactiveIcon = Icons.Outlined.Analytics,
-                onClick = { onSelectTab(3) },
-                testTag = "nav_tab_stats"
-            )
+            Row(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(horizontal = 8.dp, vertical = 6.dp),
+                horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                IOSTabBarItem(
+                    selected = currentTab == 0,
+                    label = "今日用药",
+                    activeIcon = Icons.Rounded.Favorite,
+                    inactiveIcon = Icons.Rounded.FavoriteBorder,
+                    onClick = { onSelectTab(0) },
+                    testTag = "nav_tab_today",
+                    modifier = Modifier.weight(1f)
+                )
+                IOSTabBarItem(
+                    selected = currentTab == 1,
+                    label = "循证药典",
+                    activeIcon = Icons.AutoMirrored.Rounded.MenuBook,
+                    inactiveIcon = Icons.AutoMirrored.Outlined.MenuBook,
+                    onClick = { onSelectTab(1) },
+                    testTag = "nav_tab_library",
+                    modifier = Modifier.weight(1f)
+                )
+                IOSTabBarItem(
+                    selected = currentTab == 2,
+                    label = "饮食运动",
+                    activeIcon = Icons.Rounded.Restaurant,
+                    inactiveIcon = Icons.Rounded.RestaurantMenu,
+                    onClick = { onSelectTab(2) },
+                    testTag = "nav_tab_diet",
+                    modifier = Modifier.weight(1f)
+                )
+                IOSTabBarItem(
+                    selected = currentTab == 3,
+                    label = "药箱统计",
+                    activeIcon = Icons.Rounded.Analytics,
+                    inactiveIcon = Icons.Outlined.Analytics,
+                    onClick = { onSelectTab(3) },
+                    testTag = "nav_tab_stats",
+                    modifier = Modifier.weight(1f)
+                )
+            }
         }
     }
 }
@@ -490,33 +516,46 @@ private fun IOSTabBarItem(
     activeIcon: ImageVector,
     inactiveIcon: ImageVector,
     onClick: () -> Unit,
-    testTag: String
+    testTag: String,
+    modifier: Modifier = Modifier
 ) {
-    val tint = if (selected) IOSHealthCoral else MaterialTheme.colorScheme.onSurfaceVariant
+    val tint by animateColorAsState(
+        targetValue = if (selected) IOSHealthCoral else MaterialTheme.colorScheme.onSurfaceVariant,
+        animationSpec = tween(200),
+        label = "tab_tint"
+    )
+    val pillBg by animateColorAsState(
+        targetValue = if (selected) IOSHealthCoral.copy(alpha = 0.12f) else Color.Transparent,
+        animationSpec = tween(200),
+        label = "tab_pill_bg"
+    )
     Column(
         horizontalAlignment = Alignment.CenterHorizontally,
         verticalArrangement = Arrangement.Center,
-        modifier = Modifier
-            .defaultMinSize(minWidth = 72.dp, minHeight = 48.dp)
+        modifier = modifier
+            .defaultMinSize(minHeight = 48.dp)
+            .clip(RoundedCornerShape(22.dp))
+            .background(pillBg)
             .clickable(
                 interactionSource = remember { MutableInteractionSource() },
                 indication = null,
                 onClick = onClick
             )
+            .padding(vertical = 6.dp)
             .testTag(testTag)
     ) {
         Icon(
             imageVector = if (selected) activeIcon else inactiveIcon,
             contentDescription = label,
             tint = tint,
-            modifier = Modifier.size(24.dp)
+            modifier = Modifier.size(22.dp)
         )
         Spacer(modifier = Modifier.height(2.dp))
         Text(
             text = label,
             style = MaterialTheme.typography.labelSmall,
             color = tint,
-            fontWeight = if (selected) FontWeight.Bold else FontWeight.Medium,
+            fontWeight = if (selected) FontWeight.ExtraBold else FontWeight.Medium,
             fontSize = 10.sp
         )
     }
@@ -640,17 +679,25 @@ fun TodayRegimenScreen(
 
                     Surface(
                         onClick = onAddClick,
-                        color = IOSHealthCoral.copy(alpha = 0.14f),
+                        color = Color.Transparent,
                         shape = CircleShape,
+                        shadowElevation = 4.dp,
                         modifier = Modifier
-                            .size(38.dp)
+                            .size(40.dp)
                             .testTag("header_add_button")
                     ) {
-                        Box(contentAlignment = Alignment.Center) {
+                        Box(
+                            modifier = Modifier
+                                .fillMaxSize()
+                                .background(
+                                    Brush.linearGradient(listOf(IOSHealthCoral, IOSHealthCoralGlow))
+                                ),
+                            contentAlignment = Alignment.Center
+                        ) {
                             Icon(
                                 imageVector = Icons.Rounded.Add,
                                 contentDescription = "添加药物",
-                                tint = IOSHealthCoral,
+                                tint = Color.White,
                                 modifier = Modifier.size(24.dp)
                             )
                         }
@@ -707,44 +754,83 @@ fun TodayRegimenScreen(
                             .fillMaxWidth()
                             .padding(horizontal = 16.dp, vertical = 6.dp)
                     ) {
-                        // iOS Inset Grouped Section Header
+                        // Modern Atmospheric Period Section Header
+                        val periodAccent = when (periodName) {
+                            "晨起" -> IOSWarmOrange
+                            "午餐" -> IOSMintGreen
+                            "晚餐" -> IOSHealthCoral
+                            else -> IOSPlumPurple
+                        }
+                        val periodIcon = when (periodName) {
+                            "晨起" -> Icons.Rounded.WbTwilight
+                            "午餐" -> Icons.Rounded.WbSunny
+                            "晚餐" -> Icons.Rounded.NightsStay
+                            else -> Icons.Rounded.Bedtime
+                        }
                         Row(
                             modifier = Modifier
                                 .fillMaxWidth()
-                                .padding(horizontal = 12.dp, vertical = 6.dp),
+                                .padding(horizontal = 8.dp, vertical = 7.dp),
                             horizontalArrangement = Arrangement.SpaceBetween,
                             verticalAlignment = Alignment.CenterVertically
                         ) {
-                            Text(
-                                text = "${periodName}时段 (${periodTimeHint(periodName)})",
-                                style = MaterialTheme.typography.labelSmall,
-                                color = MaterialTheme.colorScheme.onSurfaceVariant,
-                                fontWeight = FontWeight.SemiBold
-                            )
+                            Row(verticalAlignment = Alignment.CenterVertically) {
+                                Icon(
+                                    imageVector = periodIcon,
+                                    contentDescription = null,
+                                    tint = periodAccent,
+                                    modifier = Modifier.size(16.dp)
+                                )
+                                Spacer(modifier = Modifier.width(6.dp))
+                                Text(
+                                    text = "${periodName}时段",
+                                    style = MaterialTheme.typography.titleSmall,
+                                    color = MaterialTheme.colorScheme.onSurface,
+                                    fontWeight = FontWeight.Bold
+                                )
+                                Spacer(modifier = Modifier.width(6.dp))
+                                Text(
+                                    text = periodTimeHint(periodName),
+                                    style = MaterialTheme.typography.labelSmall,
+                                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                                )
+                            }
                             val doneCount = periodMeds.count { it.isTakenToday }
-                            Text(
-                                text = if (isManageMode) {
-                                    "点击红色按钮可移除药物"
-                                } else if (doneCount == periodMeds.size) {
-                                    "已全部完成"
-                                } else {
-                                    "$doneCount/${periodMeds.size} 已服用"
-                                },
-                                style = MaterialTheme.typography.labelSmall,
+                            Surface(
+                                shape = RoundedCornerShape(50),
                                 color = when {
-                                    isManageMode -> CrimsonDanger
-                                    doneCount == periodMeds.size -> IOSMintGreen
-                                    else -> MaterialTheme.colorScheme.onSurfaceVariant
-                                },
-                                fontWeight = FontWeight.SemiBold
-                            )
+                                    isManageMode -> CrimsonDanger.copy(alpha = 0.12f)
+                                    doneCount == periodMeds.size -> IOSMintGreen.copy(alpha = 0.14f)
+                                    else -> MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.7f)
+                                }
+                            ) {
+                                Text(
+                                    text = if (isManageMode) {
+                                        "点击移除"
+                                    } else if (doneCount == periodMeds.size) {
+                                        "已全部完成"
+                                    } else {
+                                        "$doneCount/${periodMeds.size} 已服"
+                                    },
+                                    style = MaterialTheme.typography.labelSmall,
+                                    color = when {
+                                        isManageMode -> CrimsonDanger
+                                        doneCount == periodMeds.size -> IOSMintGreen
+                                        else -> MaterialTheme.colorScheme.onSurfaceVariant
+                                    },
+                                    fontWeight = FontWeight.Bold,
+                                    modifier = Modifier.padding(horizontal = 9.dp, vertical = 3.dp)
+                                )
+                            }
                         }
 
-                        // Single Rounded White Card Containing All Rows in this Section
+                        // Single Modern Elevated Card Containing All Rows in this Section
                         Surface(
                             modifier = Modifier.fillMaxWidth(),
-                            shape = RoundedCornerShape(14.dp),
-                            color = MaterialTheme.colorScheme.surface
+                            shape = RoundedCornerShape(18.dp),
+                            color = MaterialTheme.colorScheme.surface,
+                            border = BorderStroke(0.75.dp, MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.8f)),
+                            shadowElevation = 1.5.dp
                         ) {
                             Column {
                                 periodMeds.forEachIndexed { index, med ->

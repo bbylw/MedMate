@@ -1,7 +1,9 @@
 package com.example.ui.components
 
 import androidx.compose.animation.AnimatedVisibility
+import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
+import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.layout.*
@@ -19,6 +21,7 @@ import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.SolidColor
 import androidx.compose.ui.platform.testTag
@@ -180,17 +183,19 @@ private fun CatalogDrugsSection(
         verticalArrangement = Arrangement.spacedBy(12.dp),
         modifier = Modifier.fillMaxSize()
     ) {
-        // Authentic iOS Search Bar (#E5E5EA pill)
+        // Modern Elevated Spotlight Search Bar
         item {
             Surface(
-                color = MaterialTheme.colorScheme.surfaceVariant,
-                shape = RoundedCornerShape(10.dp),
+                color = MaterialTheme.colorScheme.surface,
+                shape = RoundedCornerShape(14.dp),
+                border = BorderStroke(0.75.dp, MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.9f)),
+                shadowElevation = 2.dp,
                 modifier = Modifier.fillMaxWidth()
             ) {
                 Row(
                     modifier = Modifier
                         .fillMaxWidth()
-                        .padding(horizontal = 12.dp, vertical = 9.dp),
+                        .padding(horizontal = 14.dp, vertical = 11.dp),
                     verticalAlignment = Alignment.CenterVertically
                 ) {
                     Icon(
@@ -333,14 +338,16 @@ private fun CatalogDrugIOSCard(
     Surface(
         modifier = Modifier
             .fillMaxWidth()
-            .clip(RoundedCornerShape(16.dp))
+            .clip(RoundedCornerShape(18.dp))
             .clickable { onOpenDetail() }
             .testTag("catalog_drug_${drug.id}"),
-        shape = RoundedCornerShape(16.dp),
-        color = MaterialTheme.colorScheme.surface
+        shape = RoundedCornerShape(18.dp),
+        color = MaterialTheme.colorScheme.surface,
+        border = BorderStroke(0.75.dp, MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.8f)),
+        shadowElevation = 1.5.dp
     ) {
         Column(modifier = Modifier.padding(16.dp)) {
-            // 1. Top Header: Squircle Icon + Full Title/Generic Name + Right Add/Remove Button
+            // 1. Top Header: Soft-Gradient Squircle Icon + Full Title/Generic Name + Right Add/Remove Button
             Row(
                 modifier = Modifier.fillMaxWidth(),
                 verticalAlignment = Alignment.Top
@@ -348,9 +355,14 @@ private fun CatalogDrugIOSCard(
                 Box(
                     modifier = Modifier
                         .padding(top = 2.dp)
-                        .size(44.dp)
-                        .clip(RoundedCornerShape(11.dp))
-                        .background(accentColor.copy(alpha = 0.14f)),
+                        .size(46.dp)
+                        .clip(RoundedCornerShape(13.dp))
+                        .background(
+                            Brush.linearGradient(
+                                listOf(accentColor.copy(alpha = 0.18f), accentColor.copy(alpha = 0.08f))
+                            )
+                        )
+                        .border(0.75.dp, accentColor.copy(alpha = 0.22f), RoundedCornerShape(13.dp)),
                     contentAlignment = Alignment.Center
                 ) {
                     Icon(

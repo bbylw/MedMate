@@ -1,6 +1,9 @@
 package com.example.ui.components
 
 import android.content.Context
+import androidx.compose.animation.core.animateFloatAsState
+import androidx.compose.animation.core.tween
+import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
@@ -18,6 +21,9 @@ import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.draw.drawBehind
+import androidx.compose.ui.geometry.Offset
+import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.testTag
@@ -232,8 +238,10 @@ fun EvidenceDietScreen(
                 currentProfile.coreMetrics.forEach { metric ->
                     Surface(
                         modifier = Modifier.weight(1f),
-                        shape = RoundedCornerShape(14.dp),
-                        color = MaterialTheme.colorScheme.surface
+                        shape = RoundedCornerShape(16.dp),
+                        color = MaterialTheme.colorScheme.surface,
+                        border = BorderStroke(0.75.dp, accentColor.copy(alpha = 0.2f)),
+                        shadowElevation = 1.dp
                     ) {
                         Column(modifier = Modifier.padding(12.dp)) {
                             Text(
@@ -442,11 +450,33 @@ fun EvidenceDietScreen(
                     }
                 }
                 Surface(
-                    shape = RoundedCornerShape(14.dp),
+                    shape = RoundedCornerShape(18.dp),
                     color = MaterialTheme.colorScheme.surface,
+                    border = BorderStroke(0.75.dp, MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.8f)),
+                    shadowElevation = 1.5.dp,
                     modifier = Modifier.fillMaxWidth()
                 ) {
+                    val habitFraction by animateFloatAsState(
+                        targetValue = if (currentProfile.dailyChecklist.isEmpty()) 0f
+                        else doneCount.toFloat() / currentProfile.dailyChecklist.size.toFloat(),
+                        animationSpec = tween(280),
+                        label = "habit_progress"
+                    )
                     Column {
+                        // Top Smooth Habit Progress Strip
+                        Box(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .height(4.dp)
+                                .background(MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.6f))
+                        ) {
+                            Box(
+                                modifier = Modifier
+                                    .fillMaxHeight()
+                                    .fillMaxWidth(habitFraction)
+                                    .background(IOSMintGreen)
+                            )
+                        }
                         currentProfile.dailyChecklist.forEachIndexed { idx, habit ->
                             val key = "${currentProfile.id}_$idx"
                             val isChecked = checkedHabits[key] == true
@@ -531,13 +561,30 @@ private fun ExercisePrescriptionSection(
             modifier = Modifier.padding(start = 12.dp)
         )
 
-        // 1. Exercise Overview & Golden Timing Card
+        // 1. Exercise Overview & Golden Timing Card with Ambient Mint Glow
         Surface(
-            shape = RoundedCornerShape(16.dp),
+            shape = RoundedCornerShape(20.dp),
             color = MaterialTheme.colorScheme.surface,
+            border = BorderStroke(0.75.dp, IOSMintGreen.copy(alpha = 0.22f)),
+            shadowElevation = 2.dp,
             modifier = Modifier.fillMaxWidth()
         ) {
-            Column(modifier = Modifier.padding(16.dp)) {
+            Column(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .drawBehind {
+                        drawCircle(
+                            brush = Brush.radialGradient(
+                                colors = listOf(IOSMintGreen.copy(alpha = 0.09f), Color.Transparent),
+                                center = Offset(size.width * 0.9f, size.height * 0.15f),
+                                radius = size.width * 0.5f
+                            ),
+                            center = Offset(size.width * 0.9f, size.height * 0.15f),
+                            radius = size.width * 0.5f
+                        )
+                    }
+                    .padding(16.dp)
+            ) {
                 Row(verticalAlignment = Alignment.CenterVertically) {
                     Box(
                         modifier = Modifier
@@ -749,11 +796,28 @@ private fun DietHeroSummaryCard(
     accentColor: Color
 ) {
     Surface(
-        shape = RoundedCornerShape(16.dp),
+        shape = RoundedCornerShape(20.dp),
         color = MaterialTheme.colorScheme.surface,
+        border = BorderStroke(0.75.dp, accentColor.copy(alpha = 0.22f)),
+        shadowElevation = 2.5.dp,
         modifier = Modifier.fillMaxWidth()
     ) {
-        Column(modifier = Modifier.padding(16.dp)) {
+        Column(
+            modifier = Modifier
+                .fillMaxWidth()
+                .drawBehind {
+                    drawCircle(
+                        brush = Brush.radialGradient(
+                            colors = listOf(accentColor.copy(alpha = 0.10f), Color.Transparent),
+                            center = Offset(size.width * 0.88f, size.height * 0.18f),
+                            radius = size.width * 0.55f
+                        ),
+                        center = Offset(size.width * 0.88f, size.height * 0.18f),
+                        radius = size.width * 0.55f
+                    )
+                }
+                .padding(16.dp)
+        ) {
             Row(
                 verticalAlignment = Alignment.CenterVertically,
                 horizontalArrangement = Arrangement.SpaceBetween,
