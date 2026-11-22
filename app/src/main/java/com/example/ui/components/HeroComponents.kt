@@ -16,6 +16,7 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.BasicTextField
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.rounded.Undo
 import androidx.compose.material.icons.outlined.*
 import androidx.compose.material.icons.rounded.*
 import androidx.compose.material3.*
@@ -40,6 +41,7 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.example.data.EvidenceDrugCatalog
 import com.example.data.Medication
+import com.example.data.normalizeTimeFormat
 import com.example.ui.theme.AmberWarning
 import com.example.ui.theme.CrimsonDanger
 import com.example.ui.theme.EmeraldSafe
@@ -48,6 +50,32 @@ import com.example.ui.theme.IOSMintGreen
 import com.example.ui.theme.IOSPlumPurple
 import com.example.ui.theme.IOSWarmOrange
 import com.example.ui.theme.JetBrainsMonoFontFamily
+import java.time.LocalTime
+import kotlin.math.abs
+import kotlin.math.roundToInt
+
+/**
+ * Parses a "HH:mm" time string into minutes since 00:00 (0..1439)
+ */
+fun timeStringToMinutes(time: String): Int {
+    val normalized = normalizeTimeFormat(time)
+    val parts = normalized.split(":")
+    val h = parts.getOrNull(0)?.toIntOrNull()?.coerceIn(0, 23) ?: 8
+    val m = parts.getOrNull(1)?.toIntOrNull()?.coerceIn(0, 59) ?: 0
+    return h * 60 + m
+}
+
+fun formatDurationMinutes(minutes: Int): String {
+    val safe = abs(minutes)
+    val h = safe / 60
+    val m = safe % 60
+    return when {
+        h > 0 && m > 0 -> "${h}小时${m}分钟"
+        h > 0 -> "${h}小时"
+        m > 0 -> "${m}分钟"
+        else -> "即将到点"
+    }
+}
 
 /**
  * Authentic iOS UISegmentedControl component
@@ -105,6 +133,7 @@ fun IOSSegmentedControl(
 @Composable
 fun EvidenceHeroBanner(
     medications: List<Medication>,
+    currentMinutesOfDay: Int = LocalTime.now().let { it.hour * 60 + it.minute },
     onShowEbmManifesto: () -> Unit,
     onMarkAllTaken: () -> Unit,
     onResetToday: () -> Unit = {}
@@ -117,7 +146,11 @@ fun EvidenceHeroBanner(
         animationSpec = spring(dampingRatio = Spring.DampingRatioLowBouncy, stiffness = Spring.StiffnessLow),
         label = "ios_ring_progress"
     )
-    val nextPending = medications.firstOrNull { !it.isTakenToday }
+    val pendingList = remember(medications) { medications.filter { !it.isTakenToday } }
+    val overduePending = remember(pendingList, currentMinutesOfDay) {
+        pendingList.filter { timeStringToMinutes(it.time) < currentMinutesOfDay }
+    }
+    val nextPending = overduePending.firstOrNull() ?: pendingList.firstOrNull()
     val maxStreak = medications.maxOfOrNull { it.streakDays } ?: 0
     val streakProgress = (maxStreak.coerceAtMost(30) / 30f)
 
@@ -210,19 +243,27 @@ fun EvidenceHeroBanner(
                     Spacer(modifier = Modifier.height(6.dp))
 
                     if (nextPending != null) {
+                        val deltaMinutes = timeStringToMinutes(nextPending.time) - currentMinutesOfDay
+                        val isOverdue = deltaMinutes < 0
                         Row(verticalAlignment = Alignment.CenterVertically) {
                             Box(
                                 modifier = Modifier
                                     .size(7.dp)
                                     .clip(CircleShape)
-                                    .background(IOSWarmOrange)
+                                    .background(if (isOverdue) CrimsonDanger else IOSWarmOrange)
                             )
                             Spacer(modifier = Modifier.width(6.dp))
                             Text(
-                                text = "下一剂 ${nextPending.time} · ${nextPending.name}",
+                                text = if (isOverdue) {
+                                    "已超时 ${formatDurationMinutes(deltaMinutes)} · ${nextPending.name}"
+                                } else if (deltaMinutes <= 15) {
+                                    "即将到点 ${nextPending.time} · ${nextPending.name}"
+                                } else {
+                                    "${formatDurationMinutes(deltaMinutes)}后 ${nextPending.time} · ${nextPending.name}"
+                                },
                                 style = MaterialTheme.typography.bodyMedium,
-                                color = MaterialTheme.colorScheme.onSurface,
-                                fontWeight = FontWeight.Medium,
+                                color = if (isOverdue) CrimsonDanger else MaterialTheme.colorScheme.onSurface,
+                                fontWeight = if (isOverdue) FontWeight.Bold else FontWeight.Medium,
                                 maxLines = 1,
                                 overflow = TextOverflow.Ellipsis
                             )
@@ -253,9 +294,13 @@ fun EvidenceHeroBanner(
 
                     Spacer(modifier = Modifier.height(4.dp))
                     Text(
-                        text = "连续达标 ${maxStreak} 天 • 零不明草药负担",
+                        text = if (overduePending.size > 1) {
+                            "当前有 ${overduePending.size} 项已过计划时间待补服"
+                        } else {
+                            "连续达标 ${maxStreak} 天 • 零不明草药负担"
+                        },
                         style = MaterialTheme.typography.bodySmall,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                        color = if (overduePending.size > 1) CrimsonDanger else MaterialTheme.colorScheme.onSurfaceVariant
                     )
                 }
 
@@ -417,10 +462,12 @@ fun IOSMedicationRow(
     onToggleTaken: () -> Unit,
     onRowClick: () -> Unit,
     onDelete: () -> Unit,
-    isManageMode: Boolean = false
+    isManageMode: Boolean = false,
+    currentMinutesOfDay: Int = LocalTime.now().let { it.hour * 60 + it.minute }
 ) {
     val accentColor = Color(medication.color)
     val isLowStock = medication.stockCount <= 7
+    val isOverdue = !medication.isTakenToday && timeStringToMinutes(medication.time) < currentMinutesOfDay
 
     Column(
         modifier = Modifier
@@ -499,11 +546,17 @@ fun IOSMedicationRow(
                         text = if (medication.isTakenToday) {
                             val timeSuffix = medication.lastTakenTime.takeIf { it.isNotBlank() }?.let { " $it" } ?: ""
                             "今日${timeSuffix}已服"
+                        } else if (isOverdue) {
+                            "${medication.time} · 已超时"
                         } else {
                             medication.time
                         },
                         style = MaterialTheme.typography.labelSmall.copy(fontFamily = JetBrainsMonoFontFamily),
-                        color = if (medication.isTakenToday) IOSMintGreen else IOSHealthCoral,
+                        color = when {
+                            medication.isTakenToday -> IOSMintGreen
+                            isOverdue -> CrimsonDanger
+                            else -> IOSHealthCoral
+                        },
                         fontWeight = FontWeight.Bold
                     )
                 }
@@ -819,7 +872,7 @@ fun MedicationDetailSheetContent(
                 )
             ) {
                 Icon(
-                    imageVector = if (medication.isTakenToday) Icons.Rounded.Undo else Icons.Rounded.CheckCircle,
+                    imageVector = if (medication.isTakenToday) Icons.AutoMirrored.Rounded.Undo else Icons.Rounded.CheckCircle,
                     contentDescription = null,
                     modifier = Modifier.size(18.dp)
                 )
@@ -1357,7 +1410,7 @@ fun stepDosageString(currentDosage: String, deltaCount: Float, form: String): St
 }
 
 private fun formatNumberClean(value: Float): String {
-    val rounded = (value * 100).toInt() / 100f
+    val rounded = (value * 100f).roundToInt() / 100f
     return if (rounded == rounded.toInt().toFloat()) {
         rounded.toInt().toString()
     } else {

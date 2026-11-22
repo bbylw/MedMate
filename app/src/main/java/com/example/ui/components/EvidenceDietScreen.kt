@@ -11,6 +11,7 @@ import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.rounded.DirectionsRun
 import androidx.compose.material.icons.rounded.*
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
@@ -25,10 +26,12 @@ import androidx.compose.ui.text.style.TextDecoration
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.example.data.DietPlanProfile
+import com.example.data.DrugInteractionChecker
 import com.example.data.EvidenceDietCatalog
 import com.example.data.ExercisePrescription
 import com.example.data.ExerciseWorkoutItem
 import com.example.data.FoodTrafficItem
+import com.example.data.Medication
 import com.example.ui.theme.CrimsonDanger
 import com.example.ui.theme.IOSHealthCoral
 import com.example.ui.theme.IOSMintGreen
@@ -39,14 +42,29 @@ import java.time.LocalDate
 
 @Composable
 fun EvidenceDietScreen(
-    currentDateIso: String = LocalDate.now().toString()
+    currentDateIso: String = LocalDate.now().toString(),
+    medications: List<Medication> = emptyList()
 ) {
     val context = LocalContext.current
     val prefs = remember(context) {
         context.getSharedPreferences("medmate_prefs", Context.MODE_PRIVATE)
     }
     val profiles = EvidenceDietCatalog.dietProfiles
-    var selectedProfileIndex by remember { mutableIntStateOf(0) }
+    val matchedProfileIds = remember(medications) {
+        DrugInteractionChecker.recommendDietProfileIds(medications)
+    }
+    val personalizedAlerts = remember(medications) {
+        DrugInteractionChecker.buildPersonalizedDietAlerts(medications)
+    }
+    var selectedProfileIndex by remember {
+        val savedId = prefs.getString("selected_diet_profile_id", null)
+        val initialIdx = if (savedId != null) {
+            profiles.indexOfFirst { it.id == savedId }.takeIf { it >= 0 }
+        } else {
+            profiles.indexOfFirst { it.id in matchedProfileIds }.takeIf { it >= 0 }
+        } ?: 0
+        mutableIntStateOf(initialIdx)
+    }
     var selectedFoodTrafficTab by remember { mutableIntStateOf(0) } // 0: 绿灯推荐, 1: 黄灯限量, 2: 红灯禁忌
 
     val habitPrefsKey = "diet_habits_$currentDateIso"
@@ -103,9 +121,13 @@ fun EvidenceDietScreen(
             ) {
                 profiles.forEachIndexed { index, profile ->
                     val selected = selectedProfileIndex == index
+                    val isMatched = profile.id in matchedProfileIds && medications.isNotEmpty()
                     val pillColor = Color(profile.accentColorHex)
                     Surface(
-                        onClick = { selectedProfileIndex = index },
+                        onClick = {
+                            selectedProfileIndex = index
+                            prefs.edit().putString("selected_diet_profile_id", profile.id).apply()
+                        },
                         color = if (selected) pillColor else MaterialTheme.colorScheme.surface,
                         shape = RoundedCornerShape(20.dp),
                         modifier = Modifier.testTag("diet_profile_tab_${profile.id}")
@@ -122,11 +144,74 @@ fun EvidenceDietScreen(
                             )
                             Spacer(modifier = Modifier.width(6.dp))
                             Text(
-                                text = profile.shortTabName,
+                                text = if (isMatched) "${profile.shortTabName} · 匹配" else profile.shortTabName,
                                 style = MaterialTheme.typography.labelLarge,
                                 color = if (selected) Color.White else MaterialTheme.colorScheme.onSurface,
                                 fontWeight = if (selected) FontWeight.Bold else FontWeight.Medium
                             )
+                        }
+                    }
+                }
+            }
+        }
+
+        // Personalized Medication-Driven Nutrition & Exercise Precautions
+        if (personalizedAlerts.isNotEmpty()) {
+            item {
+                Surface(
+                    shape = RoundedCornerShape(14.dp),
+                    color = IOSWarmOrange.copy(alpha = 0.09f),
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .testTag("personalized_diet_alerts_card")
+                ) {
+                    Column(
+                        modifier = Modifier.padding(14.dp),
+                        verticalArrangement = Arrangement.spacedBy(8.dp)
+                    ) {
+                        Row(verticalAlignment = Alignment.CenterVertically) {
+                            Icon(
+                                imageVector = Icons.Rounded.VerifiedUser,
+                                contentDescription = null,
+                                tint = IOSWarmOrange,
+                                modifier = Modifier.size(18.dp)
+                            )
+                            Spacer(modifier = Modifier.width(6.dp))
+                            Text(
+                                text = "根据您当前用药自动匹配的饮食与运动提醒",
+                                style = MaterialTheme.typography.labelLarge,
+                                color = IOSWarmOrange,
+                                fontWeight = FontWeight.Bold
+                            )
+                        }
+                        personalizedAlerts.forEach { alert ->
+                            Surface(
+                                shape = RoundedCornerShape(10.dp),
+                                color = MaterialTheme.colorScheme.surface,
+                                modifier = Modifier.fillMaxWidth()
+                            ) {
+                                Column(modifier = Modifier.padding(10.dp)) {
+                                    Text(
+                                        text = alert.title,
+                                        style = MaterialTheme.typography.titleSmall,
+                                        fontWeight = FontWeight.Bold,
+                                        color = MaterialTheme.colorScheme.onSurface
+                                    )
+                                    Text(
+                                        text = "关联药物：${alert.matchedDrugs.joinToString("、")}",
+                                        style = MaterialTheme.typography.labelSmall,
+                                        color = IOSHealthCoral,
+                                        fontWeight = FontWeight.SemiBold
+                                    )
+                                    Spacer(modifier = Modifier.height(2.dp))
+                                    Text(
+                                        text = alert.detail,
+                                        style = MaterialTheme.typography.bodySmall,
+                                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                        lineHeight = 17.sp
+                                    )
+                                }
+                            }
                         }
                     }
                 }
@@ -462,7 +547,7 @@ private fun ExercisePrescriptionSection(
                         contentAlignment = Alignment.Center
                     ) {
                         Icon(
-                            imageVector = Icons.Rounded.DirectionsRun,
+                            imageVector = Icons.AutoMirrored.Rounded.DirectionsRun,
                             contentDescription = null,
                             tint = IOSMintGreen,
                             modifier = Modifier.size(22.dp)

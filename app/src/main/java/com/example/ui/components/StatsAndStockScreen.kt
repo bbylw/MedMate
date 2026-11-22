@@ -25,6 +25,7 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.example.BuildConfig
+import com.example.data.DrugInteractionChecker
 import com.example.data.Medication
 import com.example.ui.theme.CrimsonDanger
 import com.example.ui.theme.IOSHealthCoral
@@ -53,6 +54,9 @@ fun StatsAndStockScreen(
     val takenCount = medications.count { it.isTakenToday }
     val todayRate = if (totalCount > 0) (takenCount * 100) / totalCount else 0
     val lowStockMeds = medications.filter { it.stockCount <= 7 }
+    val interactionAlerts = remember(medications) {
+        DrugInteractionChecker.analyzeRegimen(medications)
+    }
 
     LaunchedEffect(currentDateIso, todayRate, totalCount) {
         if (totalCount > 0) {
@@ -165,8 +169,17 @@ fun StatsAndStockScreen(
         item {
             WeeklyAdherenceIOSCard(
                 todayRate = todayRate,
+                hasMedicationsToday = totalCount > 0,
                 currentDateIso = currentDateIso,
                 prefs = prefs
+            )
+        }
+
+        // Clinical Drug-Drug Interaction & Duplicate Therapy Screening Card
+        item {
+            ClinicalSafetySummaryCard(
+                medicationCount = totalCount,
+                alerts = interactionAlerts
             )
         }
 
@@ -278,11 +291,11 @@ private fun IOSHighlightCard(
 @Composable
 private fun WeeklyAdherenceIOSCard(
     todayRate: Int,
+    hasMedicationsToday: Boolean,
     currentDateIso: String,
     prefs: android.content.SharedPreferences
 ) {
     val parsedDate = runCatching { LocalDate.parse(currentDateIso) }.getOrElse { LocalDate.now() }
-    val defaultBaseline = listOf(100, 100, 75, 100, 100, 100)
     val days = (6 downTo 0).map { offset ->
         if (offset == 0) {
             "今日"
@@ -298,13 +311,20 @@ private fun WeeklyAdherenceIOSCard(
             }
         }
     }
-    val rates = (6 downTo 0).mapIndexed { idx, offset ->
+    val nullableRates: List<Int?> = (6 downTo 0).map { offset ->
         if (offset == 0) {
-            todayRate
+            if (hasMedicationsToday) todayRate else null
         } else {
             val dayIso = parsedDate.minusDays(offset.toLong()).toString()
-            prefs.getInt("adherence_rate_$dayIso", defaultBaseline.getOrElse(idx) { 100 })
+            val key = "adherence_rate_$dayIso"
+            if (prefs.contains(key)) prefs.getInt(key, 0) else null
         }
+    }
+    val recordedRates = nullableRates.filterNotNull()
+    val avgLabel = if (recordedRates.isNotEmpty()) {
+        "已记录 ${recordedRates.size} 天 · 平均 ${recordedRates.sum() / recordedRates.size}%"
+    } else {
+        "今日开始记录"
     }
 
     Surface(
@@ -334,7 +354,7 @@ private fun WeeklyAdherenceIOSCard(
                     )
                 }
                 Text(
-                    text = "平均 ${(rates.sum() / rates.size)}%",
+                    text = avgLabel,
                     style = MaterialTheme.typography.labelMedium.copy(fontFamily = JetBrainsMonoFontFamily),
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                     fontWeight = FontWeight.Bold
@@ -348,12 +368,12 @@ private fun WeeklyAdherenceIOSCard(
                     .fillMaxWidth()
                     .height(110.dp)
             ) {
-                val barCount = rates.size
+                val barCount = nullableRates.size
                 val slotWidth = size.width / barCount
                 val barWidth = min(slotWidth * 0.42f, 24.dp.toPx())
                 val maxBarHeight = size.height - 6.dp.toPx()
 
-                rates.forEachIndexed { index, rate ->
+                nullableRates.forEachIndexed { index, rate ->
                     val x = index * slotWidth + (slotWidth - barWidth) / 2f
                     drawRoundRect(
                         color = Color(0xFFE5E5EA).copy(alpha = 0.6f),
@@ -361,18 +381,25 @@ private fun WeeklyAdherenceIOSCard(
                         size = Size(barWidth, maxBarHeight),
                         cornerRadius = CornerRadius(6.dp.toPx(), 6.dp.toPx())
                     )
-                    val barHeight = (rate.coerceIn(8, 100) / 100f) * maxBarHeight
-                    val barColor = when {
-                        index == barCount - 1 -> IOSHealthCoral
-                        rate >= 90 -> IOSMintGreen
-                        else -> IOSWarmOrange
+                    if (rate != null) {
+                        val barHeight = if (rate == 0) {
+                            6.dp.toPx()
+                        } else {
+                            (rate.coerceIn(8, 100) / 100f) * maxBarHeight
+                        }
+                        val barColor = when {
+                            index == barCount - 1 -> IOSHealthCoral
+                            rate >= 90 -> IOSMintGreen
+                            rate > 0 -> IOSWarmOrange
+                            else -> Color(0xFFC7C7CC)
+                        }
+                        drawRoundRect(
+                            color = barColor,
+                            topLeft = Offset(x, maxBarHeight - barHeight),
+                            size = Size(barWidth, barHeight),
+                            cornerRadius = CornerRadius(6.dp.toPx(), 6.dp.toPx())
+                        )
                     }
-                    drawRoundRect(
-                        color = barColor,
-                        topLeft = Offset(x, maxBarHeight - barHeight),
-                        size = Size(barWidth, barHeight),
-                        cornerRadius = CornerRadius(6.dp.toPx(), 6.dp.toPx())
-                    )
                 }
             }
 
@@ -381,12 +408,23 @@ private fun WeeklyAdherenceIOSCard(
                 horizontalArrangement = Arrangement.SpaceAround
             ) {
                 days.forEachIndexed { idx, label ->
-                    Text(
-                        text = label,
-                        style = MaterialTheme.typography.labelSmall,
-                        color = if (idx == days.lastIndex) IOSHealthCoral else MaterialTheme.colorScheme.onSurfaceVariant,
-                        fontWeight = if (idx == days.lastIndex) FontWeight.Bold else FontWeight.Normal
-                    )
+                    val rate = nullableRates[idx]
+                    Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                        Text(
+                            text = label,
+                            style = MaterialTheme.typography.labelSmall,
+                            color = if (idx == days.lastIndex) IOSHealthCoral else MaterialTheme.colorScheme.onSurfaceVariant,
+                            fontWeight = if (idx == days.lastIndex) FontWeight.Bold else FontWeight.Normal
+                        )
+                        Text(
+                            text = rate?.let { "$it%" } ?: "--",
+                            style = MaterialTheme.typography.labelSmall.copy(
+                                fontFamily = JetBrainsMonoFontFamily,
+                                fontSize = 9.sp
+                            ),
+                            color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.75f)
+                        )
+                    }
                 }
             }
         }

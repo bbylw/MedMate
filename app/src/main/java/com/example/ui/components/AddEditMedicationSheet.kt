@@ -32,6 +32,7 @@ import com.example.ui.theme.CrimsonDanger
 import com.example.ui.theme.IOSHealthCoral
 import com.example.ui.theme.PillColorPalette
 
+@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun AddEditMedicationSheet(
     initialMedication: Medication? = null,
@@ -68,6 +69,7 @@ fun AddEditMedicationSheet(
     val formOptions = listOf("片剂", "胶囊", "缓释片", "滴剂", "喷雾", "注射剂")
     val quickTimes = listOf("07:30", "08:30", "12:30", "18:30", "21:30", "22:30")
     val mealOptions = listOf("空腹服用", "随餐服用", "餐后服用", "睡前服用", "不限饮食")
+    var showTimePicker by remember { mutableStateOf(false) }
 
     val canSave = name.isNotBlank()
 
@@ -326,22 +328,52 @@ fun AddEditMedicationSheet(
                         verticalAlignment = Alignment.CenterVertically
                     ) {
                         Text("时间 (${inferPeriodFromTime(time)})", style = MaterialTheme.typography.bodyLarge)
-                        BasicTextField(
-                            value = time,
-                            onValueChange = { time = it },
-                            textStyle = MaterialTheme.typography.bodyLarge.copy(
-                                color = IOSHealthCoral,
-                                fontWeight = FontWeight.Bold,
-                                textAlign = TextAlign.End
-                            ),
-                            cursorBrush = SolidColor(IOSHealthCoral),
-                            singleLine = true,
-                            modifier = Modifier
-                                .width(90.dp)
-                                .background(MaterialTheme.colorScheme.surfaceVariant, RoundedCornerShape(8.dp))
-                                .padding(horizontal = 10.dp, vertical = 6.dp)
-                                .testTag("input_med_time")
-                        )
+                        Row(
+                            verticalAlignment = Alignment.CenterVertically,
+                            horizontalArrangement = Arrangement.spacedBy(8.dp)
+                        ) {
+                            Surface(
+                                onClick = { showTimePicker = true },
+                                color = IOSHealthCoral.copy(alpha = 0.12f),
+                                shape = RoundedCornerShape(8.dp),
+                                modifier = Modifier.testTag("open_time_picker_button")
+                            ) {
+                                Row(
+                                    modifier = Modifier.padding(horizontal = 10.dp, vertical = 6.dp),
+                                    verticalAlignment = Alignment.CenterVertically
+                                ) {
+                                    Icon(
+                                        imageVector = Icons.Rounded.Schedule,
+                                        contentDescription = "选择时间",
+                                        tint = IOSHealthCoral,
+                                        modifier = Modifier.size(16.dp)
+                                    )
+                                    Spacer(modifier = Modifier.width(4.dp))
+                                    Text(
+                                        text = "选表盘",
+                                        style = MaterialTheme.typography.labelMedium,
+                                        color = IOSHealthCoral,
+                                        fontWeight = FontWeight.Bold
+                                    )
+                                }
+                            }
+                            BasicTextField(
+                                value = time,
+                                onValueChange = { time = it },
+                                textStyle = MaterialTheme.typography.bodyLarge.copy(
+                                    color = IOSHealthCoral,
+                                    fontWeight = FontWeight.Bold,
+                                    textAlign = TextAlign.End
+                                ),
+                                cursorBrush = SolidColor(IOSHealthCoral),
+                                singleLine = true,
+                                modifier = Modifier
+                                    .width(82.dp)
+                                    .background(MaterialTheme.colorScheme.surfaceVariant, RoundedCornerShape(8.dp))
+                                    .padding(horizontal = 10.dp, vertical = 6.dp)
+                                    .testTag("input_med_time")
+                            )
+                        }
                     }
 
                     Row(
@@ -501,6 +533,59 @@ fun AddEditMedicationSheet(
                 }
             }
         }
+    }
+
+    if (showTimePicker) {
+        val normalized = normalizeTimeFormat(time)
+        val initialHour = normalized.substringBefore(":").toIntOrNull()?.coerceIn(0, 23) ?: 8
+        val initialMinute = normalized.substringAfter(":").toIntOrNull()?.coerceIn(0, 59) ?: 0
+        val timePickerState = rememberTimePickerState(
+            initialHour = initialHour,
+            initialMinute = initialMinute,
+            is24Hour = true
+        )
+        AlertDialog(
+            onDismissRequest = { showTimePicker = false },
+            containerColor = MaterialTheme.colorScheme.surface,
+            shape = RoundedCornerShape(20.dp),
+            title = {
+                Text(
+                    text = "选择服药提醒时间",
+                    style = MaterialTheme.typography.titleMedium,
+                    fontWeight = FontWeight.Bold
+                )
+            },
+            text = {
+                Box(
+                    modifier = Modifier.fillMaxWidth(),
+                    contentAlignment = Alignment.Center
+                ) {
+                    TimePicker(
+                        state = timePickerState,
+                        colors = TimePickerDefaults.colors(
+                            selectorColor = IOSHealthCoral,
+                            timeSelectorSelectedContainerColor = IOSHealthCoral.copy(alpha = 0.16f),
+                            timeSelectorSelectedContentColor = IOSHealthCoral
+                        )
+                    )
+                }
+            },
+            confirmButton = {
+                TextButton(
+                    onClick = {
+                        time = "%02d:%02d".format(timePickerState.hour, timePickerState.minute)
+                        showTimePicker = false
+                    }
+                ) {
+                    Text("确定", color = IOSHealthCoral, fontWeight = FontWeight.Bold)
+                }
+            },
+            dismissButton = {
+                TextButton(onClick = { showTimePicker = false }) {
+                    Text("取消", color = MaterialTheme.colorScheme.onSurfaceVariant)
+                }
+            }
+        )
     }
 }
 

@@ -18,9 +18,10 @@ import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.outlined.MenuBook
+import androidx.compose.material.icons.automirrored.rounded.MenuBook
 import androidx.compose.material.icons.outlined.Analytics
 import androidx.compose.material.icons.outlined.Medication
-import androidx.compose.material.icons.outlined.MenuBook
 import androidx.compose.material.icons.rounded.*
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
@@ -42,6 +43,7 @@ import androidx.lifecycle.compose.LocalLifecycleOwner
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.example.data.AppDatabase
+import com.example.data.DrugInteractionChecker
 import com.example.data.Medication
 import com.example.data.MedicationRepository
 import com.example.ui.MedicationViewModel
@@ -53,6 +55,7 @@ import com.example.ui.components.EvidenceLibraryScreen
 import com.example.ui.components.IOSMedicationRow
 import com.example.ui.components.IOSSegmentedControl
 import com.example.ui.components.MedicationDetailSheetContent
+import com.example.ui.components.RegimenInteractionAlertBanner
 import com.example.ui.components.StatsAndStockScreen
 import com.example.ui.theme.CrimsonDanger
 import com.example.ui.theme.IOSHealthCoral
@@ -61,6 +64,7 @@ import com.example.ui.theme.MedMateTheme
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 import java.time.LocalDate
+import java.time.LocalTime
 import java.time.format.DateTimeFormatter
 import java.util.Locale
 
@@ -133,11 +137,16 @@ fun MedMateApp(viewModel: MedicationViewModel) {
         }
     }
 
-    // 1. Trigger daily sync on launch and every 15 seconds to catch 00:00 midnight rollover while open
+    var currentMinutesOfDay by remember {
+        mutableIntStateOf(LocalTime.now().let { it.hour * 60 + it.minute })
+    }
+
+    // 1. Trigger daily sync on launch and every 15 seconds to catch 00:00 midnight rollover & live countdown
     LaunchedEffect(Unit) {
         triggerDailySync()
         while (true) {
             delay(15_000L)
+            currentMinutesOfDay = LocalTime.now().let { it.hour * 60 + it.minute }
             triggerDailySync()
         }
     }
@@ -146,6 +155,7 @@ fun MedMateApp(viewModel: MedicationViewModel) {
     DisposableEffect(lifecycleOwner) {
         val observer = LifecycleEventObserver { _, event ->
             if (event == Lifecycle.Event.ON_RESUME) {
+                currentMinutesOfDay = LocalTime.now().let { it.hour * 60 + it.minute }
                 triggerDailySync()
             }
         }
@@ -228,6 +238,7 @@ fun MedMateApp(viewModel: MedicationViewModel) {
                     0 -> TodayRegimenScreen(
                         medications = medications,
                         currentDateIso = currentDateIso,
+                        currentMinutesOfDay = currentMinutesOfDay,
                         selectedPeriod = selectedPeriod,
                         onSelectPeriod = { viewModel.selectPeriod(it) },
                         onAddClick = {
@@ -292,7 +303,10 @@ fun MedMateApp(viewModel: MedicationViewModel) {
                             }
                         }
                     )
-                    2 -> EvidenceDietScreen(currentDateIso = currentDateIso)
+                    2 -> EvidenceDietScreen(
+                        currentDateIso = currentDateIso,
+                        medications = medications
+                    )
                     3 -> StatsAndStockScreen(
                         medications = medications,
                         currentDateIso = currentDateIso,
@@ -444,8 +458,8 @@ fun IOSTabBar(
             IOSTabBarItem(
                 selected = currentTab == 1,
                 label = "循证药典",
-                activeIcon = Icons.Rounded.MenuBook,
-                inactiveIcon = Icons.Outlined.MenuBook,
+                activeIcon = Icons.AutoMirrored.Rounded.MenuBook,
+                inactiveIcon = Icons.AutoMirrored.Outlined.MenuBook,
                 onClick = { onSelectTab(1) },
                 testTag = "nav_tab_library"
             )
@@ -512,6 +526,7 @@ private fun IOSTabBarItem(
 fun TodayRegimenScreen(
     medications: List<Medication>,
     currentDateIso: String,
+    currentMinutesOfDay: Int = LocalTime.now().let { it.hour * 60 + it.minute },
     selectedPeriod: String,
     onSelectPeriod: (String) -> Unit,
     onAddClick: () -> Unit,
@@ -527,6 +542,9 @@ fun TodayRegimenScreen(
     val dateFormatted = remember(currentDateIso) {
         val parsed = runCatching { LocalDate.parse(currentDateIso) }.getOrElse { LocalDate.now() }
         parsed.format(DateTimeFormatter.ofPattern("M月d日 EEEE", Locale.CHINESE))
+    }
+    val interactionAlerts = remember(medications) {
+        DrugInteractionChecker.analyzeRegimen(medications)
     }
     var isManageMode by remember { mutableStateOf(false) }
     var showClearAllConfirm by remember { mutableStateOf(false) }
@@ -645,10 +663,18 @@ fun TodayRegimenScreen(
         item {
             EvidenceHeroBanner(
                 medications = medications,
+                currentMinutesOfDay = currentMinutesOfDay,
                 onShowEbmManifesto = onShowEbmManifesto,
                 onMarkAllTaken = onMarkAllTaken,
                 onResetToday = onResetToday
             )
+        }
+
+        // Clinical Drug-Drug Interaction & Duplicate Therapy Alert Banner (only shown when conflicts exist)
+        if (interactionAlerts.isNotEmpty()) {
+            item(key = "interaction_alerts_banner") {
+                RegimenInteractionAlertBanner(alerts = interactionAlerts)
+            }
         }
 
         // Authentic iOS UISegmentedControl for Time Periods
@@ -728,7 +754,8 @@ fun TodayRegimenScreen(
                                         onToggleTaken = { onToggleTaken(med) },
                                         onRowClick = { onInspectMed(med) },
                                         onDelete = { onDeleteMed(med) },
-                                        isManageMode = isManageMode
+                                        isManageMode = isManageMode,
+                                        currentMinutesOfDay = currentMinutesOfDay
                                     )
                                 }
                             }
